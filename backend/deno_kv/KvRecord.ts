@@ -5,14 +5,18 @@ export abstract class KvRecord<T extends string = "none">
   implements BasicKvRecord {
   id: string;
   type: T;
-  hydrated?: boolean;
+  #hydrated: boolean;
   // deno-lint-ignore no-explicit-any
   abstract internal?: Record<string, any>;
 
   constructor(record?: Partial<KvRecord<T>>) {
     this.id = record?.id ?? crypto.randomUUID();
     this.type = record?.type ?? "none" as T;
-    this.hydrated = false;
+    this.#hydrated = false;
+  }
+
+  get hydrated(): boolean {
+    return this.#hydrated;
   }
 
   async get(): Promise<boolean> {
@@ -20,7 +24,7 @@ export abstract class KvRecord<T extends string = "none">
     const result = await kv.get<KvRecord<T>>([this.type, this.id]);
     if (result.value !== null) {
       Object.assign(this, result.value);
-      this.hydrated = true;
+      this.#hydrated = true;
       return true;
     }
     return false;
@@ -32,7 +36,7 @@ export abstract class KvRecord<T extends string = "none">
     return result.ok ?? false;
   }
 
-  toPublic(): Mutable<typeof this, "internal"> {
+  toPublic(): Mutable<typeof this, "internal" | "hydrated"> {
     const pub = { ...this };
     delete pub.internal;
     return pub;
