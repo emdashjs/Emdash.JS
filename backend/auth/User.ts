@@ -4,6 +4,7 @@ import { KvRecord } from "../deno_kv/KvRecord.ts";
 import { BasicKvRecord, JsonLike } from "../deno_kv/types.ts";
 import { uuidv5 } from "./uuidv5.ts";
 import { database } from "../deno_kv/database.ts";
+import isStrongPassword from "./isStrongPassword.ts";
 
 type RecordType = typeof RecordType;
 const RecordType = "user" as const;
@@ -16,6 +17,7 @@ export class User extends KvRecord<RecordType> {
     passwordHash: string;
     passwordSalt: string;
     roles: string[];
+    state: "enabled" | "disabled";
   };
 
   constructor(record?: Partial<User>) {
@@ -30,6 +32,7 @@ export class User extends KvRecord<RecordType> {
       passwordHash: record?.internal?.passwordHash ?? "",
       passwordSalt: record?.internal?.passwordSalt ?? "",
       roles: record?.internal?.roles ?? [],
+      state: record?.internal?.state ?? "disabled",
     };
   }
 
@@ -49,6 +52,9 @@ export class User extends KvRecord<RecordType> {
   }
 
   async setPassword(password: string): Promise<this> {
+    if (!isStrongPassword(password, APP_DATA.PASSWORD_RULES)) {
+      throw new Error(USER_ERROR.PASSWORD_STRENGTH);
+    }
     this.internal.passwordSalt = Array.from(
       crypto.getRandomValues(new Uint8Array(512)),
       (byte) => String.fromCharCode(byte),
@@ -76,13 +82,14 @@ export class User extends KvRecord<RecordType> {
     user: Omit<Partial<User>, "email"> & { email: string },
     password: string,
   ) {
+    const exists = await User.get(user.email);
+    if (exists !== USER_BUILTIN.NOT_EXIST) {
+      return exists;
+    }
     const newUser = new User(user);
     await newUser.setPassword(password);
+    newUser.internal.state = "enabled";
     return newUser;
-  }
-
-  static id(email: string): string {
-    return uuidv5(email, APP_DATA.UUID);
   }
 
   static async get(idOrEmail: string) {
@@ -92,6 +99,10 @@ export class User extends KvRecord<RecordType> {
     return result.value ?? USER_BUILTIN.NOT_EXIST;
   }
 
+  static id(email: string): string {
+    return uuidv5(email, APP_DATA.UUID);
+  }
+
   static isUser(record: BasicKvRecord): record is User {
     return record instanceof User;
   }
@@ -99,8 +110,6 @@ export class User extends KvRecord<RecordType> {
   static isUserLike(record: BasicKvRecord): record is JsonLike<User> {
     return record.type === RecordType;
   }
-
-  static passwordRules(): void {}
 }
 
 export const USER_BUILTIN = {
