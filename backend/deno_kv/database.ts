@@ -1,3 +1,4 @@
+/// <reference lib="deno.unstable" />
 import { APP_DATA } from "../constants.ts";
 
 let mutex: Promise<Deno.Kv> | undefined;
