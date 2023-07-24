@@ -1,0 +1,31 @@
+{
+	"editor.tabSize": 2,
+	"editor.useTabStops": true,
+	"editor.detectIndentation": false,
+	"editor.formatOnSave": true,
+	"deno.enable": true,
+	"deno.codeLens.test": true,
+	"deno.codeLens.testArgs": [
+		"--allow-all"
+	],
+	"deno.lint": true,
+	"deno.suggest.autoImports": true,
+	"deno.suggest.imports.autoDiscover": true,
+	"deno.suggest.paths": true,
+	"deno.unstable": true,
+	"deno.suggest.imports.hosts": {
+		"https://deno.land": true
+	},
+	"[javascript]": {
+		"editor.defaultFormatter": "denoland.vscode-deno"
+	},
+	"[javascriptreact]": {
+		"editor.defaultFormatter": "denoland.vscode-deno"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "denoland.vscode-deno"
+	},
+	"[typescriptreact]": {
+		"editor.defaultFormatter": "denoland.vscode-deno"
+	}
+}
