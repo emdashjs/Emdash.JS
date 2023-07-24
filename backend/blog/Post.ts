@@ -8,8 +8,6 @@ import { formatSlug } from "./formats.ts";
 export class Post extends KvRecord<"post"> {
   author: string;
   content: string;
-  created: Date;
-  modified: Date;
   slug: string;
   subtitle?: string;
   tags: string[];
@@ -20,6 +18,8 @@ export class Post extends KvRecord<"post"> {
     super({
       id: record?.id ?? crypto.randomUUID(),
       type: record?.type ?? "post",
+      created: record?.created,
+      modified: record?.modified,
     });
     this.author = record?.author ?? APP_DATA.UUID;
     this.title = record?.title ?? "";
@@ -41,10 +41,6 @@ export class Post extends KvRecord<"post"> {
   }
 
   static fromJSON(input: JsonLike<Post>) {
-    return new Post({
-      ...input,
-      created: new Date(input.created),
-      modified: new Date(input.modified),
-    });
+    return new Post(KvRecord.likeJSON(input));
   }
 }

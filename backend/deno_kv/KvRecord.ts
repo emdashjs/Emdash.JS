@@ -1,10 +1,12 @@
 import { database } from "./database.ts";
-import type { BasicKvRecord, Mutable } from "./types.ts";
+import type { BasicKvRecord, JsonLike, Mutable } from "./types.ts";
 
 export abstract class KvRecord<T extends string = "none">
   implements BasicKvRecord {
   id: string;
   type: T;
+  created: Date;
+  modified: Date;
   #hydrated: boolean;
   // deno-lint-ignore no-explicit-any
   abstract internal?: Record<string, any>;
@@ -12,6 +14,8 @@ export abstract class KvRecord<T extends string = "none">
   constructor(record?: Partial<KvRecord<T>>) {
     this.id = record?.id ?? crypto.randomUUID();
     this.type = record?.type ?? "none" as T;
+    this.created = record?.created ?? new Date();
+    this.modified = record?.modified ?? this.created;
     this.#hydrated = false;
   }
 
@@ -44,5 +48,13 @@ export abstract class KvRecord<T extends string = "none">
 
   toJSON() {
     return this.toPublic();
+  }
+
+  static likeJSON<T extends KvRecord<string>>(input: JsonLike<T>) {
+    return {
+      ...input,
+      created: new Date(input.created),
+      modified: new Date(input.modified),
+    };
   }
 }

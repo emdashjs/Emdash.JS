@@ -24,6 +24,8 @@ export class User extends KvRecord<RecordType> {
     super({
       id: record?.email ? User.id(record.email) : record?.id,
       type: record?.type ?? RecordType,
+      created: record?.created,
+      modified: record?.modified,
     });
     this.email = record?.email ?? "";
     this.first_name = record?.first_name ?? "";
@@ -60,6 +62,7 @@ export class User extends KvRecord<RecordType> {
       (byte) => String.fromCharCode(byte),
     ).join("");
     this.internal.passwordHash = await this.getHash(password);
+    this.modified = new Date();
     await this.set();
     return this;
   }
