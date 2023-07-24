@@ -36,6 +36,7 @@ export abstract class KvRecord<T extends string = "none">
 
   async set(): Promise<boolean> {
     const kv = await database();
+    this.modified = new Date();
     const result = await kv.set([this.type, this.id], this);
     return result.ok ?? false;
   }

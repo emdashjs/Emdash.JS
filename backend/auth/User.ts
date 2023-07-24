@@ -62,7 +62,6 @@ export class User extends KvRecord<RecordType> {
       (byte) => String.fromCharCode(byte),
     ).join("");
     this.internal.passwordHash = await this.getHash(password);
-    this.modified = new Date();
     await this.set();
     return this;
   }
