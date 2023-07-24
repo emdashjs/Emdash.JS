@@ -14,6 +14,7 @@ export type JsonLike<
   -readonly [K in keyof Omit<T, E>]-?: T[K] extends (...args: any[]) => any
     ? undefined
     : T[K] extends Date ? string
+    : T[K] extends any[] ? T[K]
     : T[K] extends Record<string | number | symbol, any> ? JsonLike<T[K]>
     : T[K];
 };

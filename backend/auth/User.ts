@@ -3,8 +3,12 @@ import { APP_DATA, USER_ERROR } from "../constants.ts";
 import { KvRecord } from "../deno_kv/KvRecord.ts";
 import { BasicKvRecord, JsonLike } from "../deno_kv/types.ts";
 import { uuidv5 } from "./uuidv5.ts";
+import { database } from "../deno_kv/database.ts";
 
-export class User extends KvRecord<"user"> {
+type RecordType = typeof RecordType;
+const RecordType = "user" as const;
+
+export class User extends KvRecord<RecordType> {
   email: string;
   first_name: string;
   last_name: string;
@@ -16,8 +20,8 @@ export class User extends KvRecord<"user"> {
 
   constructor(record?: Partial<User>) {
     super({
-      id: record?.email ? uuidv5(record.email, APP_DATA.UUID) : record?.id,
-      type: record?.type ?? "user",
+      id: record?.email ? User.id(record.email) : record?.id,
+      type: record?.type ?? RecordType,
     });
     this.email = record?.email ?? "";
     this.first_name = record?.first_name ?? "";
@@ -77,13 +81,38 @@ export class User extends KvRecord<"user"> {
     return newUser;
   }
 
+  static id(email: string): string {
+    return uuidv5(email, APP_DATA.UUID);
+  }
+
+  static async get(idOrEmail: string) {
+    const id = idOrEmail.includes("@") ? User.id(idOrEmail) : idOrEmail;
+    const kv = await database();
+    const result = await kv.get<User>([RecordType, id]);
+    return result.value ?? USER_BUILTIN.NOT_EXIST;
+  }
+
   static isUser(record: BasicKvRecord): record is User {
     return record instanceof User;
   }
 
   static isUserLike(record: BasicKvRecord): record is JsonLike<User> {
-    return record.type === "user";
+    return record.type === RecordType;
   }
 
   static passwordRules(): void {}
 }
+
+export const USER_BUILTIN = {
+  NOT_EXIST: new User({
+    id: crypto.randomUUID(),
+    first_name: "Not",
+    last_name: "Exist",
+  }),
+  SYSTEM: new User({
+    id: APP_DATA.UUID,
+    first_name: "System",
+    last_name: "User",
+    email: APP_DATA.EMAIL,
+  }),
+} as const;
