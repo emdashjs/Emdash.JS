@@ -73,7 +73,12 @@ export class Router {
 
   static STATIC = new Route("GET:/static/(.*)", async (request) => {
     const path = "." + request.url.pathname
-      .replace(/^\/static/gui, APP_DATA.STATIC);
+      .replace(
+        /^\/static/gui,
+        APP_DATA.STATIC.startsWith("/")
+          ? APP_DATA.STATIC
+          : `/${APP_DATA.STATIC}`,
+      );
     let content: string | Uint8Array;
     let contentType: string;
     let status: number;
