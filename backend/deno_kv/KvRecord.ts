@@ -41,6 +41,12 @@ export abstract class KvRecord<T extends string = "none">
     return result.ok ?? false;
   }
 
+  async delete(): Promise<boolean> {
+    const kv = await database();
+    await kv.delete([this.type, this.id]);
+    return true;
+  }
+
   toPublic(): Mutable<typeof this, "internal" | "hydrated"> {
     const pub = { ...this };
     delete pub.internal;
