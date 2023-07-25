@@ -1,4 +1,4 @@
-import { parsePathToRegExp } from "../../deps.ts";
+import { parsePathToRegExp, pathToRegexp } from "../../deps.ts";
 
 const privates = new WeakMap<URLPatternPlus, URLSearchPattern>();
 const MOD = {
@@ -10,19 +10,28 @@ const MOD = {
 
 export class URLPatternPlus {
   #urlPattern: URLPattern;
+  #methodRegExp: RegExp;
+  #methodPattern: string;
 
-  constructor(input: URLPatternInput, baseURL?: string | undefined) {
+  constructor(input: URLPatternPlusInput, baseURL?: string | undefined) {
     const isClean = typeof input === "string" || isCleanInput(input);
     this.#urlPattern = new URLPattern(
       isClean ? input : { ...input, search: undefined },
       baseURL,
     );
     if (!isClean) {
-      privates.set(this, parseURLSearch(input.search!));
+      privates.set(this, parseURLSearch(input.search ?? "(.*)"));
     }
+    this.#methodPattern = (typeof input === "object")
+      ? input.method ?? "*"
+      : "*";
+    const cleanPattern = this.#methodPattern === "*"
+      ? "(.*)"
+      : this.#methodPattern;
+    this.#methodRegExp = pathToRegexp(cleanPattern);
   }
 
-  test(input: URLPatternInput, baseURL?: string | undefined): boolean {
+  test(input: URLPatternPlusInput, baseURL?: string | undefined): boolean {
     const result = this.#urlPattern.test(input, baseURL);
     if (result && privates.has(this)) {
       // Also test the search query.
@@ -45,11 +54,15 @@ export class URLPatternPlus {
         }
       }
     }
+    const method = typeof input === "string" ? "GET" : input.method ?? "GET";
+    if (!method.match(this.#methodRegExp)) {
+      return false;
+    }
     return result;
   }
 
   exec(
-    input: URLPatternInput,
+    input: URLPatternPlusInput,
     baseURL?: string | undefined,
   ): URLPatternPlusResult | null {
     const result = this.#urlPattern.exec(input, baseURL);
@@ -79,7 +92,17 @@ export class URLPatternPlus {
         }
       }
     }
-    return result;
+    const method = typeof input === "string" ? "GET" : input.method ?? "GET";
+    const methodResult = method.match(this.#methodRegExp);
+    if (!methodResult || !result) {
+      return null;
+    }
+    return {
+      ...result,
+      method: {
+        input: method,
+      },
+    };
   }
 
   get protocol(): string {
@@ -93,6 +116,9 @@ export class URLPatternPlus {
   }
   get hostname(): string {
     return this.#urlPattern.hostname;
+  }
+  get method(): string {
+    return this.#methodPattern;
   }
   get port(): string {
     return this.#urlPattern.port;
@@ -108,8 +134,17 @@ export class URLPatternPlus {
   }
 }
 
+export interface URLPatternPlusInit extends URLPatternInit {
+  method?: string;
+}
+
+export type URLPatternPlusInput = string | URLPatternPlusInit;
+
 export interface URLPatternPlusResult extends Omit<URLPatternResult, "search"> {
   search: URLSearchPatternResult;
+  method: {
+    input: string;
+  };
 }
 
 export interface URLSearchPatternResult {
