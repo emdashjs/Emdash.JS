@@ -47,20 +47,15 @@ export class Renderer {
     } else {
       const app = renderSSR(input);
       const { body, head, footer, attributes } = Helmet.SSR(app);
-
       html = `
       <!DOCTYPE html>
       <html ${attributes.html.toString()}>
-        <head>
-          ${head.join("\n")}
-        </head>
-        <body ${attributes.body.toString()}>
-          ${body}
-          ${footer.join("\n")}
-        </body>
+        <head>${head.join("\n")}</head>
+        <${
+        attributes.body.size > 0 ? "body " + attributes.body.toString() : "body"
+      }>${body.trim()}${footer.join("\n")}</body>
       </html>`;
     }
-
     const response = new Response(html);
     this.#setHeaders(response, {
       contentType: "text/html",
