@@ -1,15 +1,21 @@
+import { lookup } from "../../deps.ts";
 import { RouteRender, RouteRequest } from "./RouteRequest.ts";
 import { Route, RouteInit, RouteName } from "./Route.ts";
 import { ServerTiming } from "./ServerTiming.ts";
 import { Renderer } from "./Renderer.ts";
+import { APP_DATA } from "../constants.ts";
 
 export class Router {
   #renderer = new Renderer();
   #routes: RouteMap = new Map();
   cache?: Cache;
+  useStatic: boolean;
 
   constructor(options?: RouterOptions) {
     this.cache = options?.cache;
+    this.useStatic = typeof options?.useStatic === "boolean"
+      ? options.useStatic
+      : true;
   }
 
   add({ pattern, render }: RouteAdd<`/${string}`, string>) {
@@ -24,6 +30,9 @@ export class Router {
   }
 
   respond(): Deno.ServeHandler {
+    if (this.useStatic) {
+      this.#routes.set(Router.STATIC.name, Router.STATIC);
+    }
     return async (request: Request, info: Deno.ServeHandlerInfo) => {
       const timing = ServerTiming.get(request);
       timing.start("CPU");
@@ -61,10 +70,32 @@ export class Router {
     measure.finish();
     return routeRequest;
   }
+
+  static STATIC = new Route("GET:/static/(.*)", async (request) => {
+    const path = "." + request.url.pathname
+      .replace(/^\/static/gui, APP_DATA.STATIC);
+    let content: string | Uint8Array;
+    let contentType: string;
+    let status: number;
+    try {
+      content = await Deno.readFile(path);
+      contentType = lookup(path) ?? "text/plain";
+      status = 200;
+    } catch (_err) {
+      content = "404: File not found.";
+      contentType = "text/html";
+      status = 404;
+    }
+    return new Response(content, {
+      status,
+      headers: { "Content-Type": contentType },
+    });
+  });
 }
 
 export type RouterOptions = {
   cache?: Cache;
+  useStatic?: boolean;
 };
 export type RouteMap = Map<
   RouteName<`/${string}`, string>,
