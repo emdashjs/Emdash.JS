@@ -7,33 +7,28 @@ export type RenderOptions = {
   cacheControl?: string;
 };
 
-export class RenderSSR {
-  cache?: Cache;
+export class Renderer {
   #xmlSsr = createXMLRenderer(renderSSR);
 
-  constructor(cache?: Cache) {
-    this.cache = cache;
-  }
-
-  async html(
+  html(
     // deno-lint-ignore no-explicit-any
     input: any,
     options: RenderOptions,
-  ): Promise<Response> {
+  ): Response {
     const app = renderSSR(input);
     const { body, head, footer, attributes } = Helmet.SSR(app);
 
     const html = `
-    <!DOCTYPE html>
-    <html ${attributes.html.toString()}>
-      <head>
-        ${head.join("\n")}
-      </head>
-      <body ${attributes.body.toString()}>
-        ${body}
-        ${footer.join("\n")}
-      </body>
-    </html>`;
+      <!DOCTYPE html>
+      <html ${attributes.html.toString()}>
+        <head>
+          ${head.join("\n")}
+        </head>
+        <body ${attributes.body.toString()}>
+          ${body}
+          ${footer.join("\n")}
+        </body>
+      </html>`;
 
     const response = new Response(html, {
       headers: {
@@ -41,7 +36,6 @@ export class RenderSSR {
         "Server-Timing": ServerTiming.toString(options.request),
       },
     });
-    await this.cache?.put(options.request, response.clone());
     return response;
   }
 
@@ -49,18 +43,18 @@ export class RenderSSR {
     // deno-lint-ignore no-explicit-any
     input: any,
     options: RenderOptions,
-  ): Promise<Response> {
+  ): Response {
     return this.xml(input, {
       ...options,
       contentType: "application/rss+xml",
     });
   }
 
-  async xml(
+  xml(
     // deno-lint-ignore no-explicit-any
     input: any,
     options: RenderOptions,
-  ): Promise<Response> {
+  ): Response {
     const xmlDirective = '<?xml version="1.0" encoding="utf-8"?>';
     const xml = xmlDirective + this.#xmlSsr(input);
     const response = new Response(xml, {
@@ -70,7 +64,6 @@ export class RenderSSR {
         "Server-Timing": ServerTiming.toString(options.request),
       },
     });
-    await this.cache?.put(options.request, response.clone());
     return response;
   }
 }
