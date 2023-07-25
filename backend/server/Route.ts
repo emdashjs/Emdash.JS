@@ -7,7 +7,7 @@ export class Route<P extends `/${string}` = "/", M extends string = "*"> {
   render: RouteRender;
 
   constructor(
-    init: RouteName<P, M> | RouteInit<P, M>,
+    init: RouteInit<P, M>,
     render: RouteRender,
   ) {
     if (typeof init === "string") {
@@ -55,6 +55,10 @@ export class Route<P extends `/${string}` = "/", M extends string = "*"> {
 }
 
 export type RouteInit<P extends `/${string}` = "/", M extends string = "*"> =
+  | RouteName<P, M>
+  | RouteObject<P, M>;
+
+export type RouteObject<P extends `/${string}` = "/", M extends string = "*"> =
   & Omit<URLPatternPlusInit, "method" | "pathname">
   & {
     pathname?: P;
