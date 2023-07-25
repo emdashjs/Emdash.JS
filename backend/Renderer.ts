@@ -15,10 +15,14 @@ export class Renderer {
     input: any,
     options: RenderOptions,
   ): Response {
-    const app = renderSSR(input);
-    const { body, head, footer, attributes } = Helmet.SSR(app);
+    let html: string;
+    if (typeof input === "string") {
+      html = input;
+    } else {
+      const app = renderSSR(input);
+      const { body, head, footer, attributes } = Helmet.SSR(app);
 
-    const html = `
+      html = `
       <!DOCTYPE html>
       <html ${attributes.html.toString()}>
         <head>
@@ -29,6 +33,7 @@ export class Renderer {
           ${footer.join("\n")}
         </body>
       </html>`;
+    }
 
     const response = new Response(html, {
       headers: {
@@ -56,7 +61,17 @@ export class Renderer {
     options: RenderOptions,
   ): Response {
     const xmlDirective = '<?xml version="1.0" encoding="utf-8"?>';
-    const xml = xmlDirective + this.#xmlSsr(input);
+    let xml: string;
+    if (typeof input === "string") {
+      if (input.startsWith(xmlDirective)) {
+        xml = input;
+      } else {
+        xml = xmlDirective + input;
+      }
+    } else {
+      xml = xmlDirective + this.#xmlSsr(input);
+    }
+
     const response = new Response(xml, {
       headers: {
         "Content-Type": options.contentType ?? "application/xml",
