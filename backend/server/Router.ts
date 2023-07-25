@@ -1,5 +1,5 @@
-import { RouteRequest } from "./RouteRequest.ts";
-import { Route, RouteName } from "./Route.ts";
+import { RouteRender, RouteRequest } from "./RouteRequest.ts";
+import { Route, RouteInit, RouteName } from "./Route.ts";
 import { ServerTiming } from "./ServerTiming.ts";
 
 export class Router {
@@ -8,6 +8,17 @@ export class Router {
 
   constructor(options?: RouterOptions) {
     this.cache = options?.cache;
+  }
+
+  add({ pattern, render }: RouteAdd<`/${string}`, string>) {
+    const route = new Route(pattern, render);
+    this.#routes.set(route.name, route);
+  }
+
+  addAll(routes: Iterable<RouteAdd<`/${string}`, string>>) {
+    for (const route of routes) {
+      this.add(route);
+    }
   }
 
   respond(): Deno.ServeHandler {
@@ -53,4 +64,11 @@ export class Router {
 export type RouterOptions = {
   cache?: Cache;
 };
-export type RouteMap = Map<RouteName, Route>;
+export type RouteMap = Map<
+  RouteName<`/${string}`, string>,
+  Route<`/${string}`, string>
+>;
+export type RouteAdd<P extends `/${string}` = "/", M extends string = "*"> = {
+  pattern: RouteInit<P, M>;
+  render: RouteRender;
+};
