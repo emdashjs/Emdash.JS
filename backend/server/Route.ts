@@ -5,10 +5,12 @@ export class Route<P extends `/${string}` = "/", M extends string = "*"> {
   name: RouteName<P, M>;
   matcher: URLPatternPlus;
   render: RouteRender;
+  useCache: boolean;
 
   constructor(
     init: RouteInit<P, M>,
     render: RouteRender,
+    useCache?: boolean,
   ) {
     if (typeof init === "string") {
       this.name = init;
@@ -26,6 +28,7 @@ export class Route<P extends `/${string}` = "/", M extends string = "*"> {
       });
     }
     this.render = render;
+    this.useCache = useCache === undefined ? true : useCache;
   }
 
   test(request: RouteRequest) {
@@ -50,6 +53,7 @@ export class Route<P extends `/${string}` = "/", M extends string = "*"> {
       }
     }
     request.setRender(this.render);
+    request.useCache = this.useCache;
     return request;
   }
 }

@@ -18,8 +18,8 @@ export class Router {
       : true;
   }
 
-  add({ pattern, render }: RouteAdd<`/${string}`, string>) {
-    const route = new Route(pattern, render);
+  add({ pattern, render, useCache }: RouteAdd<`/${string}`, string>) {
+    const route = new Route(pattern, render, useCache);
     this.#routes.set(route.name, route);
   }
 
@@ -36,20 +36,24 @@ export class Router {
     return async (request: Request, info: Deno.ServeHandlerInfo) => {
       const timing = ServerTiming.get(request);
       timing.start("CPU");
-      const cacheMeasure = timing.start("Cache");
-      const cached = await this.cache?.match(request);
-      cacheMeasure.finish();
-      if (cached) {
-        const response = cached.clone();
-        response.headers.set("Server-Timing", timing.toString());
-        return response;
-      }
       const routeRequest = this.#routeRequest(request, info);
+      if (routeRequest.useCache) {
+        const cacheMeasure = timing.start("Cache");
+        const cached = await this.cache?.match(request);
+        cacheMeasure.finish();
+        if (cached) {
+          const response = cached.clone();
+          response.headers.set("Server-Timing", timing.toString());
+          return response;
+        }
+      }
       const response = await routeRequest.render(this.#renderer);
 
       if (response) {
         response.headers.set("Server-Timing", timing.toString());
-        await this.cache?.put(request, response.clone());
+        if (routeRequest.useCache) {
+          await this.cache?.put(request, response.clone());
+        }
         return response;
       }
 
@@ -108,5 +112,6 @@ export type RouteMap = Map<
 >;
 export type RouteAdd<P extends `/${string}` = "/", M extends string = "*"> = {
   pattern: RouteInit<P, M>;
+  useCache?: boolean;
   render: RouteRender;
 };

@@ -5,6 +5,7 @@ export class RouteRequest {
   url: RouteURL;
   original: Request;
   params: Record<string, string | string[] | undefined> = {};
+  useCache: boolean;
   #info: Deno.ServeHandlerInfo;
   #renderFunc: RouteRender;
 
@@ -16,6 +17,7 @@ export class RouteRequest {
     this.#info = info;
     this.url = new RouteURL(request.url, { method: request.method });
     this.#renderFunc = DEFAULT_RENDER;
+    this.useCache = true;
   }
 
   get headers(): Headers {
