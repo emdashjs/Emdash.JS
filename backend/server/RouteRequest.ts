@@ -6,17 +6,44 @@ export class RouteRequest {
   url: RouteURL;
   original: Request;
   params: Record<string, string | string[] | undefined> = {};
+  #info: Deno.ServeHandlerInfo;
   #renderFunc: RouteRender;
 
   constructor(
     request: Request,
-    render?: RouteRender,
+    info: Deno.ServeHandlerInfo,
   ) {
     this.original = request;
+    this.#info = info;
     this.url = new RouteURL(request.url, { method: request.method });
     const [_, second] = this.url.pathname.split("/");
     this.name = `/${second}`;
-    this.#renderFunc = render ?? DEFAULT_RENDER;
+    this.#renderFunc = DEFAULT_RENDER;
+  }
+
+  get headers(): Headers {
+    return this.original.headers;
+  }
+
+  get method(): string {
+    return this.original.method;
+  }
+
+  get origin(): string {
+    return this.url.origin;
+  }
+
+  get referrer(): string {
+    return this.original.referrer;
+  }
+
+  get remote(): RouteRemote {
+    return {
+      host: `${this.#info.remoteAddr.hostname}:${this.#info.remoteAddr.port}`,
+      hostname: this.#info.remoteAddr.hostname,
+      port: this.#info.remoteAddr.port,
+      transport: this.#info.remoteAddr.transport,
+    };
   }
 
   get render() {
@@ -35,12 +62,18 @@ export class RouteRequest {
 }
 
 export type RouteRender = (request: RouteRequest) => Promise<Response | void>;
+export type RouteRemote = {
+  host: string;
+  hostname: string;
+  port: number;
+  transport: "tcp" | "udp";
+};
 
-const DEFAULT_RENDER = async (
+export const DEFAULT_RENDER = async (
   _request: RouteRequest,
 ): Promise<Response | void> => {};
 
-class RouteURL extends URL {
+export class RouteURL extends URL {
   method: string;
   constructor(
     url: string | URL | RouteURL,

@@ -11,9 +11,9 @@ export class Router {
     this.cache = options?.cache;
   }
 
-  respond(cache?: Cache): (request: Request) => Promise<Response> {
+  respond(cache?: Cache): Deno.ServeHandler {
     this.cache = cache;
-    return async (request: Request) => {
+    return async (request: Request, info: Deno.ServeHandlerInfo) => {
       const timing = ServerTiming.get(request);
       timing.start("CPU");
       const cacheMeasure = timing.start("Cache");
