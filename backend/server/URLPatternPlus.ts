@@ -1,4 +1,4 @@
-import { parsePathToRegExp } from "../deps.ts";
+import { parsePathToRegExp } from "../../deps.ts";
 
 const privates = new WeakMap<URLPatternPlus, URLSearchPattern>();
 const MOD = {
