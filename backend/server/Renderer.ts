@@ -1,4 +1,4 @@
-import { createXMLRenderer, Helmet, renderSSR } from "../deps.ts";
+import { createXMLRenderer, Helmet, renderSSR } from "../../deps.ts";
 
 export type RenderOptions = {
   contentType?: string;

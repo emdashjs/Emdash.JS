@@ -1,3 +1,4 @@
+import { Renderer } from "./Renderer.ts";
 import { ServerTiming } from "./ServerTiming.ts";
 
 export class RouteRequest {
@@ -43,8 +44,8 @@ export class RouteRequest {
   }
 
   get render() {
-    return () => {
-      return this.#renderFunc(this);
+    return (renderer: Renderer) => {
+      return this.#renderFunc(this, renderer);
     };
   }
 
@@ -59,6 +60,7 @@ export class RouteRequest {
 
 export type RouteRender = (
   request: RouteRequest,
+  renderer: Renderer,
 ) => Response | void | Promise<Response | void>;
 export type RouteRemote = {
   host: string;
@@ -69,7 +71,8 @@ export type RouteRemote = {
 
 export const DEFAULT_RENDER = async (
   _request: RouteRequest,
-): Promise<Response | void> => {};
+  _renderer: Renderer,
+) => {};
 
 export class RouteURL extends URL {
   method: string;

@@ -1,8 +1,10 @@
 import { RouteRender, RouteRequest } from "./RouteRequest.ts";
 import { Route, RouteInit, RouteName } from "./Route.ts";
 import { ServerTiming } from "./ServerTiming.ts";
+import { Renderer } from "./Renderer.ts";
 
 export class Router {
+  #renderer = new Renderer();
   #routes: RouteMap = new Map();
   cache?: Cache;
 
@@ -34,7 +36,7 @@ export class Router {
         return response;
       }
       const routeRequest = this.#routeRequest(request, info);
-      const response = await routeRequest.render();
+      const response = await routeRequest.render(this.#renderer);
 
       if (response) {
         response.headers.set("Server-Timing", timing.toString());
