@@ -1,8 +1,6 @@
 import { createXMLRenderer, Helmet, renderSSR } from "../deps.ts";
-import { ServerTiming } from "./server/ServerTiming.ts";
 
 export type RenderOptions = {
-  request: Request;
   contentType?: string;
   cacheControl?: string;
 };
@@ -10,13 +8,41 @@ export type RenderOptions = {
 export class Renderer {
   #xmlSsr = createXMLRenderer(renderSSR);
 
+  #setHeaders(response: Response, options?: RenderOptions): void {
+    if (options?.contentType) {
+      response.headers.set("Content-Type", options.contentType);
+    }
+    if (options?.cacheControl) {
+      response.headers.set("Cache-Control", options.cacheControl);
+    }
+  }
+
+  json(
+    // deno-lint-ignore no-explicit-any
+    input: any,
+    options?: RenderOptions,
+  ): Response {
+    let response: Response;
+    if (typeof input === "string" || isBufferSource(input)) {
+      response = new Response(input);
+      this.#setHeaders(response, {
+        contentType: "application/json",
+        ...options,
+      });
+    } else {
+      response = Response.json(input);
+      this.#setHeaders(response, options);
+    }
+    return response;
+  }
+
   html(
     // deno-lint-ignore no-explicit-any
     input: any,
-    options: RenderOptions,
+    options?: RenderOptions,
   ): Response {
-    let html: string;
-    if (typeof input === "string") {
+    let html: string | BufferSource;
+    if (typeof input === "string" || isBufferSource(input)) {
       html = input;
     } else {
       const app = renderSSR(input);
@@ -35,12 +61,12 @@ export class Renderer {
       </html>`;
     }
 
-    const response = new Response(html, {
-      headers: {
-        "Content-Type": "text/html",
-        "Server-Timing": ServerTiming.toString(options.request),
-      },
+    const response = new Response(html);
+    this.#setHeaders(response, {
+      contentType: "text/html",
+      ...options,
     });
+
     return response;
   }
 
@@ -61,24 +87,31 @@ export class Renderer {
     options: RenderOptions,
   ): Response {
     const xmlDirective = '<?xml version="1.0" encoding="utf-8"?>';
-    let xml: string;
+    let xml: string | BufferSource;
     if (typeof input === "string") {
       if (input.startsWith(xmlDirective)) {
         xml = input;
       } else {
         xml = xmlDirective + input;
       }
+    } else if (isBufferSource(input)) {
+      xml = input;
     } else {
       xml = xmlDirective + this.#xmlSsr(input);
     }
 
-    const response = new Response(xml, {
-      headers: {
-        "Content-Type": options.contentType ?? "application/xml",
-        "Cache-Control": options.cacheControl ?? "no-cache, no-store",
-        "Server-Timing": ServerTiming.toString(options.request),
-      },
+    const response = new Response(xml);
+    this.#setHeaders(response, {
+      contentType: "application/xml",
+      ...options,
     });
+
     return response;
   }
+}
+
+// deno-lint-ignore no-explicit-any
+function isBufferSource(source: any): source is BufferSource {
+  return typeof source === "object" &&
+    (ArrayBuffer.isView(source) || "byteLength" in source && "slice" in source);
 }
