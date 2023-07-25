@@ -31,7 +31,7 @@ export class Router {
 
   respond(): Deno.ServeHandler {
     if (this.useStatic) {
-      this.#routes.set(Router.STATIC.name, Router.STATIC);
+      this.#routes.set(STATIC_ROUTE.name, STATIC_ROUTE);
     }
     return async (request: Request, info: Deno.ServeHandlerInfo) => {
       const timing = ServerTiming.get(request);
@@ -74,32 +74,6 @@ export class Router {
     measure.finish();
     return routeRequest;
   }
-
-  static STATIC = new Route("GET:/static/(.*)", async (request) => {
-    const path = "." + request.url.pathname
-      .replace(
-        /^\/static/gui,
-        APP_DATA.STATIC.startsWith("/")
-          ? APP_DATA.STATIC
-          : `/${APP_DATA.STATIC}`,
-      );
-    let content: string | Uint8Array;
-    let contentType: string;
-    let status: number;
-    try {
-      content = await Deno.readFile(path);
-      contentType = lookup(path) ?? "text/plain";
-      status = 200;
-    } catch (_err) {
-      content = "404: File not found.";
-      contentType = "text/html";
-      status = 404;
-    }
-    return new Response(content, {
-      status,
-      headers: { "Content-Type": contentType },
-    });
-  });
 }
 
 export type RouterOptions = {
@@ -115,3 +89,27 @@ export type RouteAdd<P extends `/${string}` = "/", M extends string = "*"> = {
   useCache?: boolean;
   render: RouteRender;
 };
+
+const STATIC_ROUTE = new Route("GET:/static/(.*)", async (request) => {
+  const path = "." + request.url.pathname
+    .replace(
+      /^\/static/gui,
+      APP_DATA.STATIC.startsWith("/") ? APP_DATA.STATIC : `/${APP_DATA.STATIC}`,
+    );
+  let content: string | Uint8Array;
+  let contentType: string;
+  let status: number;
+  try {
+    content = await Deno.readFile(path);
+    contentType = lookup(path) ?? "text/plain";
+    status = 200;
+  } catch (_err) {
+    content = "404: File not found.";
+    contentType = "text/html";
+    status = 404;
+  }
+  return new Response(content, {
+    status,
+    headers: { "Content-Type": contentType },
+  });
+});
