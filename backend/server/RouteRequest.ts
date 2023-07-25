@@ -1,5 +1,5 @@
-import { RequestMeasure } from "./RequestMeasure.ts";
 import { RouteName } from "./Route.ts";
+import { ServerTiming } from "./ServerTiming.ts";
 
 export class RouteRequest {
   name: RouteName;
@@ -19,25 +19,25 @@ export class RouteRequest {
     this.#renderFunc = render ?? DEFAULT_RENDER;
   }
 
+  get render() {
+    return () => {
+      return this.#renderFunc(this);
+    };
+  }
+
+  get timing(): ServerTiming {
+    return ServerTiming.get(this.original);
+  }
+
   setRender(render: RouteRender): void {
     this.#renderFunc = render;
   }
-
-  get render() {
-    return (measures: RequestMeasure[]) => {
-      return this.#renderFunc(this, measures);
-    };
-  }
 }
 
-export type RouteRender = (
-  request: RouteRequest,
-  measures: RequestMeasure[],
-) => Promise<Response | void>;
+export type RouteRender = (request: RouteRequest) => Promise<Response | void>;
 
 const DEFAULT_RENDER = async (
   _request: RouteRequest,
-  _measures: RequestMeasure[],
 ): Promise<Response | void> => {};
 
 class RouteURL extends URL {

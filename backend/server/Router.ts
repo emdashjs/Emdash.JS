@@ -1,47 +1,50 @@
 import { createXMLRenderer, h, Helmet, renderSSR } from "../../deps.ts";
-import { RequestMeasure } from "./RequestMeasure.ts";
 import { RouteRequest } from "./RouteRequest.ts";
 import { RouteMap } from "./Route.ts";
+import { ServerTiming } from "./ServerTiming.ts";
 
 const renderXML = createXMLRenderer(renderSSR);
 export class Router {
-  #performance = new WeakMap<Request, RequestMeasure[]>();
+  #routes: RouteMap = new Map([]);
   cache?: Cache;
-  routes: RouteMap = new Map([]);
+  constructor(options?: RouterOptions) {
+    this.cache = options?.cache;
+  }
 
-  #getRoute(request: Request) {
-    const measure = this.#createMeasure(request, "Route");
+  respond(cache?: Cache): (request: Request) => Promise<Response> {
+    this.cache = cache;
+    return async (request: Request) => {
+      const timing = ServerTiming.get(request);
+      timing.start("CPU");
+      const cacheMeasure = timing.start("Cache");
+      const cached = await cache?.match(request);
+      cacheMeasure.finish();
+      if (cached) {
+        const response = cached.clone();
+        response.headers.set("Server-Timing", timing.toString());
+        return response;
+      }
+      const routeRequest = this.#routeRequest(request);
+      const render = await routeRequest.render();
+
+      if (render) {
+        render.headers.set("Server-Timing", timing.toString());
+        return render;
+      }
+
+      return Response.redirect(routeRequest.url.origin, 307);
+    };
+  }
+
+  #routeRequest(request: Request) {
+    const measure = ServerTiming.get(request).start("Route");
     const routeRequest = new RouteRequest(request);
-    const route = this.routes.get(routeRequest.name);
+    const route = this.#routes.get(routeRequest.name);
     if (route) {
       route.exec(routeRequest);
     }
     measure.finish();
     return routeRequest;
-  }
-
-  respond(cache?: Cache) {
-    this.cache = cache;
-    return async (request: Request) => {
-      this.#createMeasure(request, "CPU", true);
-      const cacheMeasure = this.#createMeasure(request, "Cache");
-      const cached = await cache?.match(request);
-      cacheMeasure.finish();
-      if (cached) {
-        const response = cached.clone();
-        response.headers.set("Server-Timing", this.#serverTime(request));
-        return response;
-      }
-      const route = this.#getRoute(request);
-      const render = await route.render(this.#performance.get(request)!);
-
-      if (render) {
-        render.headers.set("Server-Timing", this.#serverTime(request));
-        return render;
-      }
-
-      return Response.redirect(route.url.origin, 307);
-    };
   }
 
   async #renderHTML(request: Request, input: any) {
@@ -63,7 +66,7 @@ export class Router {
     const response = new Response(html, {
       headers: {
         "Content-Type": "text/html",
-        "Server-Timing": this.#serverTime(request),
+        "Server-Timing": ServerTiming.toString(request),
       },
     });
     await this.cache?.put(request, response.clone());
@@ -86,26 +89,14 @@ export class Router {
       headers: {
         "Content-Type": contentType,
         "Cache-Control": cache,
-        "Server-Timing": this.#serverTime(request),
+        "Server-Timing": ServerTiming.toString(request),
       },
     });
     await this.cache?.put(request, response.clone());
     return response;
   }
-
-  #serverTime(request: Request) {
-    return this.#performance.get(request)?.map((measure) =>
-      measure.serverTime()
-    ).join(", ") ?? "noMetrics";
-  }
-
-  #createMeasure(request: Request, name: string, init?: boolean) {
-    const measure = new RequestMeasure(name);
-    if (init) {
-      this.#performance.set(request, [measure]);
-    } else {
-      this.#performance.get(request)?.push(measure);
-    }
-    return measure;
-  }
 }
+
+export type RouterOptions = {
+  cache?: Cache;
+};
