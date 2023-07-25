@@ -24,7 +24,7 @@ export class Router {
         response.headers.set("Server-Timing", timing.toString());
         return response;
       }
-      const routeRequest = this.#routeRequest(request);
+      const routeRequest = this.#routeRequest(request, info);
       const render = await routeRequest.render();
 
       if (render) {
@@ -36,9 +36,9 @@ export class Router {
     };
   }
 
-  #routeRequest(request: Request) {
+  #routeRequest(request: Request, info: Deno.ServeHandlerInfo) {
     const measure = ServerTiming.get(request).start("Route");
-    const routeRequest = new RouteRequest(request);
+    const routeRequest = new RouteRequest(request, info);
     const route = this.#routes.get(routeRequest.name);
     if (route) {
       route.exec(routeRequest);
