@@ -57,7 +57,9 @@ export class RouteRequest {
   }
 }
 
-export type RouteRender = (request: RouteRequest) => Promise<Response | void>;
+export type RouteRender = (
+  request: RouteRequest,
+) => Response | void | Promise<Response | void>;
 export type RouteRemote = {
   host: string;
   hostname: string;
