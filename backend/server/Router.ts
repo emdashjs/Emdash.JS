@@ -10,13 +10,12 @@ export class Router {
     this.cache = options?.cache;
   }
 
-  respond(cache?: Cache): Deno.ServeHandler {
-    this.cache = cache;
+  respond(): Deno.ServeHandler {
     return async (request: Request, info: Deno.ServeHandlerInfo) => {
       const timing = ServerTiming.get(request);
       timing.start("CPU");
       const cacheMeasure = timing.start("Cache");
-      const cached = await cache?.match(request);
+      const cached = await this.cache?.match(request);
       cacheMeasure.finish();
       if (cached) {
         const response = cached.clone();
@@ -28,6 +27,7 @@ export class Router {
 
       if (response) {
         response.headers.set("Server-Timing", timing.toString());
+        await this.cache?.put(request, response.clone());
         return response;
       }
 
