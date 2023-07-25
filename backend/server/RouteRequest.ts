@@ -1,8 +1,6 @@
-import { RouteName } from "./Route.ts";
 import { ServerTiming } from "./ServerTiming.ts";
 
 export class RouteRequest {
-  name: RouteName;
   url: RouteURL;
   original: Request;
   params: Record<string, string | string[] | undefined> = {};
@@ -16,8 +14,6 @@ export class RouteRequest {
     this.original = request;
     this.#info = info;
     this.url = new RouteURL(request.url, { method: request.method });
-    const [_, second] = this.url.pathname.split("/");
-    this.name = `/${second}`;
     this.#renderFunc = DEFAULT_RENDER;
   }
 

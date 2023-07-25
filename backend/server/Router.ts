@@ -1,9 +1,9 @@
 import { RouteRequest } from "./RouteRequest.ts";
-import { RouteMap } from "./Route.ts";
+import { Route, RouteName } from "./Route.ts";
 import { ServerTiming } from "./ServerTiming.ts";
 
 export class Router {
-  #routes: RouteMap = new Map([]);
+  #routes: RouteMap = new Map();
   cache?: Cache;
 
   constructor(options?: RouterOptions) {
@@ -24,11 +24,11 @@ export class Router {
         return response;
       }
       const routeRequest = this.#routeRequest(request, info);
-      const render = await routeRequest.render();
+      const response = await routeRequest.render();
 
-      if (render) {
-        render.headers.set("Server-Timing", timing.toString());
-        return render;
+      if (response) {
+        response.headers.set("Server-Timing", timing.toString());
+        return response;
       }
 
       return Response.redirect(routeRequest.url.origin, 307);
@@ -38,9 +38,12 @@ export class Router {
   #routeRequest(request: Request, info: Deno.ServeHandlerInfo) {
     const measure = ServerTiming.get(request).start("Route");
     const routeRequest = new RouteRequest(request, info);
-    const route = this.#routes.get(routeRequest.name);
-    if (route) {
-      route.exec(routeRequest);
+    for (const route of this.#routes.values()) {
+      if (route.test(routeRequest)) {
+        route.exec(routeRequest);
+        measure.finish();
+        return routeRequest;
+      }
     }
     measure.finish();
     return routeRequest;
@@ -50,3 +53,4 @@ export class Router {
 export type RouterOptions = {
   cache?: Cache;
 };
+export type RouteMap = Map<RouteName, Route>;

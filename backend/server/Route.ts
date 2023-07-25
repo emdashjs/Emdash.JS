@@ -1,47 +1,52 @@
 import { RouteRender, RouteRequest } from "./RouteRequest.ts";
-import { URLPatternPlus } from "./URLPatternPlus.ts";
+import { URLPatternPlus, URLPatternPlusInit } from "./URLPatternPlus.ts";
 
-export class Route<T extends string = string> {
-  name: RouteName<T>;
-  matcher: URLPatternPlus | true;
+export class Route<P extends `/${string}` = "/", M extends string = "*"> {
+  name: RouteName<P, M>;
+  matcher: URLPatternPlus;
   render: RouteRender;
 
   constructor(
-    name: RouteName<T>,
-    options: { render: RouteRender; matcher?: URLPatternPlus },
+    init: RouteName<P, M> | RouteInit<P, M>,
+    render: RouteRender,
   ) {
-    this.name = name;
-    this.matcher = options.matcher ?? true;
-    this.render = options.render;
+    if (typeof init === "string") {
+      this.name = init;
+      const [method, ...paths] = init.split(":");
+      const pathname = paths.join(":");
+      this.matcher = new URLPatternPlus({
+        pathname,
+        method,
+      });
+    } else {
+      this.name = `${init.method ?? "*" as M}:${init.pathname ?? "/" as P}`;
+      this.matcher = new URLPatternPlus({
+        ...init,
+        pathname: init.pathname ?? "/",
+      });
+    }
+    this.render = render;
   }
 
   test(request: RouteRequest) {
-    if (this.name === request.name) {
-      if (this.matcher === true) {
-        return this.matcher;
-      }
-      return this.matcher.test(request.url);
-    }
-    return false;
+    return this.matcher.test(request.url);
   }
 
   exec(request: RouteRequest) {
-    if (this.matcher && this.matcher !== true) {
-      const match = this.matcher.exec(request.url);
+    const match = this.matcher.exec(request.url);
 
-      if (match) {
-        const entries = Object.entries(match.pathname.groups ?? {});
-        for (const [key, value] of entries) {
-          request.params[key] = value ? decodeURIComponent(value) : value;
-        }
-        const searchEntries = Object.entries(match.search.groups ?? {});
-        for (const [key, value] of searchEntries) {
-          request.params[key] = Array.isArray(value)
-            ? value.map((item) => decodeURIComponent(item))
-            : typeof value === "string"
-            ? decodeURIComponent(value)
-            : value;
-        }
+    if (match) {
+      const entries = Object.entries(match.pathname.groups ?? {});
+      for (const [key, value] of entries) {
+        request.params[key] = value ? decodeURIComponent(value) : value;
+      }
+      const searchEntries = Object.entries(match.search.groups ?? {});
+      for (const [key, value] of searchEntries) {
+        request.params[key] = Array.isArray(value)
+          ? value.map((item) => decodeURIComponent(item))
+          : typeof value === "string"
+          ? decodeURIComponent(value)
+          : value;
       }
     }
     request.setRender(this.render);
@@ -49,5 +54,12 @@ export class Route<T extends string = string> {
   }
 }
 
-export type RouteName<T extends string = string> = `/${T}`;
-export type RouteMap = Map<RouteName, Route>;
+export type RouteInit<P extends `/${string}` = "/", M extends string = "*"> =
+  & Omit<URLPatternPlusInit, "method" | "pathname">
+  & {
+    pathname?: P;
+    method?: M;
+  };
+
+export type RouteName<P extends `/${string}` = "/", M extends string = "*"> =
+  `${M}:${P}`;
