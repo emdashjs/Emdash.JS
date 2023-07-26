@@ -99,7 +99,15 @@ export class RouteRequest implements Body {
   }
 
   clone(): RouteRequest {
-    const request = new RouteRequest(this.native.clone(), this.#info);
+    const clone = this.native.clone();
+    Object.defineProperty(clone, "url", {
+      configurable: true,
+      enumerable: true,
+      get: () => {
+        return this.native.url;
+      },
+    });
+    const request = new RouteRequest(clone, this.#info);
     request.setRender(this.#renderFunc);
     return request;
   }
