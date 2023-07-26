@@ -1,6 +1,7 @@
-export { parse } from "https://deno.land/std@0.194.0/path/mod.ts";
-export { exists } from "https://deno.land/std@0.194.0/fs/exists.ts";
+export { parse } from "https://deno.land/std@0.195.0/path/mod.ts";
+export { exists } from "https://deno.land/std@0.195.0/fs/exists.ts";
 export { lookup } from "https://deno.land/x/media_types@v3.0.3/mod.ts";
+export { CookieMap } from "https://deno.land/std@0.195.0/http/cookie_map.ts";
 export {
   parse as parsePathToRegExp,
   pathToRegexp,
