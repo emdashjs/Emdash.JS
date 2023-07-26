@@ -6,7 +6,7 @@ export const apiRoutes: RouteAdd<`/api/${string}`, string>[] = [
   {
     pattern: "POST:/api/login",
     render: async (request, renderer) => {
-      const body = await request.original.formData();
+      const body = await request.formData();
       const email = body.get("email") as string;
       const password = body.get("password") as string;
       const user = await User.get(email);

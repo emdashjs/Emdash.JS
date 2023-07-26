@@ -1,9 +1,9 @@
 import { Renderer } from "./Renderer.ts";
 import { ServerTiming } from "./ServerTiming.ts";
 
-export class RouteRequest {
+export class RouteRequest implements Body {
   url: RouteURL;
-  original: Request;
+  native: Request;
   params: Record<string, string | string[] | undefined> = {};
   useCache: boolean;
   #info: Deno.ServeHandlerInfo;
@@ -13,19 +13,47 @@ export class RouteRequest {
     request: Request,
     info: Deno.ServeHandlerInfo,
   ) {
-    this.original = request;
+    this.native = request;
     this.#info = info;
     this.url = new RouteURL(request.url, { method: request.method });
     this.#renderFunc = DEFAULT_RENDER;
     this.useCache = true;
   }
 
+  get body() {
+    return this.native.body;
+  }
+
+  get bodyUsed() {
+    return this.native.bodyUsed;
+  }
+
+  get arrayBuffer() {
+    return this.native.arrayBuffer;
+  }
+
+  get blob() {
+    return this.native.blob;
+  }
+
+  get formData() {
+    return this.native.formData;
+  }
+
+  get json() {
+    return this.native.json;
+  }
+
+  get text() {
+    return this.native.text;
+  }
+
   get headers(): Headers {
-    return this.original.headers;
+    return this.native.headers;
   }
 
   get method(): string {
-    return this.original.method;
+    return this.native.method;
   }
 
   get origin(): string {
@@ -33,7 +61,7 @@ export class RouteRequest {
   }
 
   get referrer(): string {
-    return this.original.referrer;
+    return this.native.referrer;
   }
 
   get remote(): RouteRemote {
@@ -52,7 +80,7 @@ export class RouteRequest {
   }
 
   get timing(): ServerTiming {
-    return ServerTiming.get(this.original);
+    return ServerTiming.get(this.native);
   }
 
   setRender(render: RouteRender): void {
@@ -64,6 +92,7 @@ export type RouteRender = (
   request: RouteRequest,
   renderer: Renderer,
 ) => Response | void | Promise<Response | void>;
+
 export type RouteRemote = {
   host: string;
   hostname: string;
@@ -77,12 +106,15 @@ export const DEFAULT_RENDER = async (
 ) => {};
 
 export class RouteURL extends URL {
-  method: string;
+  #method: string;
   constructor(
     url: string | URL | RouteURL,
     options?: { base?: string | URL; method?: string },
   ) {
     super(url, options?.base);
-    this.method = options?.method ?? "";
+    this.#method = options?.method ?? "";
+  }
+  get method() {
+    return this.#method;
   }
 }
