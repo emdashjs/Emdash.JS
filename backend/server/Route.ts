@@ -41,15 +41,20 @@ export class Route<P extends `/${string}` = "/", M extends string = "*"> {
     if (match) {
       const entries = Object.entries(match.pathname.groups ?? {});
       for (const [key, value] of entries) {
-        request.params[key] = value ? decodeURIComponent(value) : value;
+        request.routeParams.append(key, value ? decodeURIComponent(value) : "");
       }
       const searchEntries = Object.entries(match.search.groups ?? {});
       for (const [key, value] of searchEntries) {
-        request.params[key] = Array.isArray(value)
-          ? value.map((item) => decodeURIComponent(item))
-          : typeof value === "string"
-          ? decodeURIComponent(value)
-          : value;
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            request.routeParams.append(key, decodeURIComponent(item));
+          }
+        } else {
+          request.routeParams.append(
+            key,
+            value ? decodeURIComponent(value) : "",
+          );
+        }
       }
     }
     request.setRender(this.render);

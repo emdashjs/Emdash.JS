@@ -4,7 +4,7 @@ import { ServerTiming } from "./ServerTiming.ts";
 export class RouteRequest implements Body {
   url: RouteURL;
   native: Request;
-  params: Record<string, string | string[] | undefined> = {};
+  routeParams = new URLSearchParams();
   useCache: boolean;
   #info: Deno.ServeHandlerInfo;
   #renderFunc: RouteRender;
@@ -77,6 +77,10 @@ export class RouteRequest implements Body {
     return (renderer: Renderer) => {
       return this.#renderFunc(this, renderer);
     };
+  }
+
+  get searchParams() {
+    return this.url.searchParams;
   }
 
   get timing(): ServerTiming {
