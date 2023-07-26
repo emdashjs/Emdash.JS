@@ -6,8 +6,8 @@ import { uuidv5 } from "./uuidv5.ts";
 import { count, database } from "../deno_kv/database.ts";
 import isStrongPassword from "./isStrongPassword.ts";
 
-type RecordType = typeof RecordType;
-const RecordType = "user" as const;
+type RecordType = typeof APP_COLLECTION.USER;
+const RecordType = APP_COLLECTION.USER;
 
 export class User extends KvRecord<RecordType> {
   email: string;

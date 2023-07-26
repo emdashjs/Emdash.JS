@@ -3,14 +3,17 @@ import { KvRecord } from "../deno_kv/KvRecord.ts";
 import { count } from "../deno_kv/database.ts";
 import { User } from "./User.ts";
 
-export class Session extends KvRecord<"session"> {
+type RecordType = typeof APP_COLLECTION.SESSION;
+const RecordType = APP_COLLECTION.SESSION;
+
+export class Session extends KvRecord<RecordType> {
   uuid: string;
   internal: undefined;
 
   constructor(user: User) {
     super({
       id: user.id,
-      type: "session",
+      type: RecordType,
     });
     this.uuid = "";
   }

@@ -5,7 +5,10 @@ import { count, database } from "../deno_kv/database.ts";
 import { JsonLike } from "../deno_kv/types.ts";
 import { formatSlug } from "./formats.ts";
 
-export class Post extends KvRecord<"post"> {
+type RecordType = typeof APP_COLLECTION.POST;
+const RecordType = APP_COLLECTION.POST;
+
+export class Post extends KvRecord<RecordType> {
   author: string;
   content: string;
   slug: string;
@@ -17,7 +20,7 @@ export class Post extends KvRecord<"post"> {
   constructor(record?: Partial<Post>) {
     super({
       id: record?.id ?? crypto.randomUUID(),
-      type: record?.type ?? "post",
+      type: record?.type ?? RecordType,
       created: record?.created,
       modified: record?.modified,
     });
