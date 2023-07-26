@@ -1,11 +1,19 @@
 import { getScoringOptions } from "./auth/isStrongPassword.ts";
 
+export const APP_COLLECTION = {
+  COUNT: "count",
+  NONE: "none",
+  POST: "post",
+  SESSION: "session",
+  USER: "user",
+} as const;
+
 const defaultRules =
   "minLength:12;minLowercase:2;minUppercase:2;minNumbers:2;minSymbols:2";
 const providedRules = Deno.env.get("APP_DATA_PASSWORD_RULES")?.trim() ?? "";
-
+const firstUser = Deno.env.get("APP_DATA_FIRST_USER")?.toLowerCase() ?? "true";
 export const APP_DATA = {
-  FIRST_USER: Deno.env.get("APP_DATA_FIRST_USER") ?? "",
+  FIRST_USER: firstUser === "true",
   FOLDER: Deno.env.get("APP_DATA_FOLDER") ?? "",
   STATIC: Deno.env.get("APP_DATA_STATIC") ?? "static",
   SESSION_TTL: Deno.env.get("APP_DATA_SESSION_TTL") ?? "7d",
@@ -22,11 +30,3 @@ export const AUTH_ERROR = {
   FORBIDDEN: "access is forbidden to this resource.",
   PASSWORD_STRENGTH: "password does not meet strength requirements.",
 };
-
-export const APP_COLLECTION = {
-  COUNT: "count",
-  NONE: "none",
-  POST: "post",
-  SESSION: "session",
-  USER: "user",
-} as const;

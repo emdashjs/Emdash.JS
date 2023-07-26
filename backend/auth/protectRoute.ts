@@ -1,4 +1,4 @@
-import { AUTH_ERROR } from "../constants.ts";
+import { APP_DATA, AUTH_ERROR } from "../constants.ts";
 import { RouteRender } from "../server/RouteRequest.ts";
 import { Session } from "./Session.ts";
 import { User } from "./User.ts";
@@ -20,44 +20,48 @@ export function protectRoute(routeRender: RouteRender): RouteRender {
       }
       return renderer.json({ error: `${error?.message}` }, { status: 500 });
     }
-    const clone = request.clone();
-    const sessionUuid = clone.cookies.get("session");
-    const sessionEmail = clone.cookies.get("email");
-    if (sessionUuid && sessionEmail) {
-      const user = await User.get(sessionEmail);
-      if (user.internal.state === "enabled") {
-        const session = new Session(user);
-        try {
-          await session.authenticate(sessionUuid);
-        } catch (error) {
-          return unauthorizedResponse(error);
-        }
-      } else {
-        return renderer.json({ error: AUTH_ERROR.FORBIDDEN }, { status: 403 });
-      }
-    } else {
-      const authorization = clone.headers.get("Authorization");
-      if (authorization) {
-        const base64 = authorization.slice(5).trim();
-        const decoded = atob(base64);
-        const [email, ...passwordParts] = decoded.split(":");
-        const password = passwordParts.join(":");
-        if (email && password) {
-          const user = await User.get(email);
-          if (user.internal.state === "enabled") {
-            try {
-              await user.authenticate(password);
-            } catch (error) {
-              return unauthorizedResponse(error);
-            }
-          } else {
-            return renderer.json({ error: AUTH_ERROR.FORBIDDEN }, {
-              status: 403,
-            });
+    if (!(APP_DATA.FIRST_USER && await User.count() === 0)) {
+      const clone = request.clone();
+      const sessionUuid = clone.cookies.get("session");
+      const sessionEmail = clone.cookies.get("email");
+      if (sessionUuid && sessionEmail) {
+        const user = await User.get(sessionEmail);
+        if (user.internal.state === "enabled") {
+          const session = new Session(user);
+          try {
+            await session.authenticate(sessionUuid);
+          } catch (error) {
+            return unauthorizedResponse(error);
           }
+        } else {
+          return renderer.json({ error: AUTH_ERROR.FORBIDDEN }, {
+            status: 403,
+          });
         }
       } else {
-        return unauthorizedResponse();
+        const authorization = clone.headers.get("Authorization");
+        if (authorization) {
+          const base64 = authorization.slice(5).trim();
+          const decoded = atob(base64);
+          const [email, ...passwordParts] = decoded.split(":");
+          const password = passwordParts.join(":");
+          if (email && password) {
+            const user = await User.get(email);
+            if (user.internal.state === "enabled") {
+              try {
+                await user.authenticate(password);
+              } catch (error) {
+                return unauthorizedResponse(error);
+              }
+            } else {
+              return renderer.json({ error: AUTH_ERROR.FORBIDDEN }, {
+                status: 403,
+              });
+            }
+          }
+        } else {
+          return unauthorizedResponse();
+        }
       }
     }
     return await routeRender(request, renderer);
