@@ -13,6 +13,10 @@ export const login = async function login(request, renderer) {
     const serverErrror = renderer.json({ error: `${error?.message}` }, {
       status: error?.message === AUTH_ERROR.NOT_AUTHENTICATED ? 401 : 500,
     });
+    serverErrror.headers.set(
+      "WWW-Authenticate",
+      'Basic realm="User Visible Realm", charset="UTF-8"',
+    );
     return serverErrror;
   }
   const session = new Session(user);
