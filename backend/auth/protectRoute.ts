@@ -6,10 +6,19 @@ import { User } from "./User.ts";
 export function protectRoute(render: RouteRender): RouteRender {
   return async (request, renderer) => {
     // deno-lint-ignore no-explicit-any
-    function unauthorizedResponse(error: any): Response {
-      return renderer.json({ error: `${error?.message}` }, {
-        status: error?.message === AUTH_ERROR.NOT_AUTHENTICATED ? 401 : 500,
-      });
+    function unauthorizedResponse(error?: any): Response {
+      if (!error || error?.message === AUTH_ERROR.NOT_AUTHENTICATED) {
+        const response = renderer.json(
+          { error: AUTH_ERROR.NOT_AUTHENTICATED },
+          { status: 401 },
+        );
+        response.headers.set(
+          "WWW-Authenticate",
+          'Basic realm="User Visible Realm", charset="UTF-8"',
+        );
+        return response;
+      }
+      return renderer.json({ error: `${error?.message}` }, { status: 500 });
     }
     const clone = request.clone();
     const sessionUuid = clone.cookies.get("session");
@@ -38,9 +47,7 @@ export function protectRoute(render: RouteRender): RouteRender {
           }
         }
       } else {
-        return renderer.json({ error: AUTH_ERROR.NOT_AUTHENTICATED }, {
-          status: 401,
-        });
+        return unauthorizedResponse();
       }
     }
     return await render(request, renderer);
