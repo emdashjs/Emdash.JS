@@ -1,4 +1,4 @@
-import { APP_DATA, USER_ERROR } from "../constants.ts";
+import { APP_DATA, AUTH_ERROR } from "../constants.ts";
 import { KvRecord } from "../deno_kv/KvRecord.ts";
 import { User } from "./User.ts";
 
@@ -38,7 +38,7 @@ export class Session extends KvRecord<"session"> {
       this.uuid = "";
       await this.delete();
     }
-    throw new Error(USER_ERROR.NOT_AUTHENTICATED);
+    throw new Error(AUTH_ERROR.NOT_AUTHENTICATED);
   }
 
   static ttl(): number {

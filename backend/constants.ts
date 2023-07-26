@@ -3,6 +3,7 @@ import { getScoringOptions } from "./auth/isStrongPassword.ts";
 const defaultRules =
   "minLength:12;minLowercase:2;minUppercase:2;minNumbers:2;minSymbols:2";
 const providedRules = Deno.env.get("APP_DATA_PASSWORD_RULES")?.trim() ?? "";
+
 export const APP_DATA = {
   FIRST_USER: Deno.env.get("APP_DATA_FIRST_USER") ?? "",
   FOLDER: Deno.env.get("APP_DATA_FOLDER") ?? "",
@@ -15,7 +16,8 @@ export const APP_DATA = {
     ? getScoringOptions(providedRules)
     : getScoringOptions(defaultRules),
 } as const;
-export const USER_ERROR = {
+
+export const AUTH_ERROR = {
   NOT_AUTHENTICATED: "user cannot be authenticated.",
   PASSWORD_STRENGTH: "password does not meet strength requirements.",
 };

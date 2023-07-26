@@ -1,5 +1,5 @@
 import { toHashString } from "https://deno.land/std@0.195.0/crypto/to_hash_string.ts";
-import { APP_DATA, USER_ERROR } from "../constants.ts";
+import { APP_DATA, AUTH_ERROR } from "../constants.ts";
 import { KvRecord } from "../deno_kv/KvRecord.ts";
 import { BasicKvRecord, JsonLike } from "../deno_kv/types.ts";
 import { uuidv5 } from "./uuidv5.ts";
@@ -44,18 +44,18 @@ export class User extends KvRecord<RecordType> {
 
   async authenticate(password: string): Promise<this> {
     if (!this.hydrated && !(await this.get())) {
-      throw new Error(USER_ERROR.NOT_AUTHENTICATED);
+      throw new Error(AUTH_ERROR.NOT_AUTHENTICATED);
     }
     const hash = await this.getHash(password);
     if (this.internal.passwordHash !== hash) {
-      throw new Error(USER_ERROR.NOT_AUTHENTICATED);
+      throw new Error(AUTH_ERROR.NOT_AUTHENTICATED);
     }
     return this;
   }
 
   async setPassword(password: string): Promise<this> {
     if (!isStrongPassword(password, APP_DATA.PASSWORD_RULES)) {
-      throw new Error(USER_ERROR.PASSWORD_STRENGTH);
+      throw new Error(AUTH_ERROR.PASSWORD_STRENGTH);
     }
     this.internal.passwordSalt = Array.from(
       crypto.getRandomValues(new Uint8Array(512)),
