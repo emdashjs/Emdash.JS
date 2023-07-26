@@ -3,7 +3,7 @@ import { RouteRender } from "../server/RouteRequest.ts";
 import { Session } from "./Session.ts";
 import { User } from "./User.ts";
 
-export function protectRoute(render: RouteRender): RouteRender {
+export function protectRoute(routeRender: RouteRender): RouteRender {
   return async (request, renderer) => {
     // deno-lint-ignore no-explicit-any
     function unauthorizedResponse(error?: any): Response {
@@ -25,11 +25,15 @@ export function protectRoute(render: RouteRender): RouteRender {
     const sessionEmail = clone.cookies.get("email");
     if (sessionUuid && sessionEmail) {
       const user = await User.get(sessionEmail);
-      const session = new Session(user);
-      try {
-        await session.authenticate(sessionUuid);
-      } catch (error) {
-        return unauthorizedResponse(error);
+      if (user.internal.state === "enabled") {
+        const session = new Session(user);
+        try {
+          await session.authenticate(sessionUuid);
+        } catch (error) {
+          return unauthorizedResponse(error);
+        }
+      } else {
+        return renderer.json({ error: AUTH_ERROR.FORBIDDEN }, { status: 403 });
       }
     } else {
       const authorization = clone.headers.get("Authorization");
@@ -40,16 +44,22 @@ export function protectRoute(render: RouteRender): RouteRender {
         const password = passwordParts.join(":");
         if (email && password) {
           const user = await User.get(email);
-          try {
-            await user.authenticate(password);
-          } catch (error) {
-            return unauthorizedResponse(error);
+          if (user.internal.state === "enabled") {
+            try {
+              await user.authenticate(password);
+            } catch (error) {
+              return unauthorizedResponse(error);
+            }
+          } else {
+            return renderer.json({ error: AUTH_ERROR.FORBIDDEN }, {
+              status: 403,
+            });
           }
         }
       } else {
         return unauthorizedResponse();
       }
     }
-    return await render(request, renderer);
+    return await routeRender(request, renderer);
   };
 }

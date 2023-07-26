@@ -19,5 +19,6 @@ export const APP_DATA = {
 
 export const AUTH_ERROR = {
   NOT_AUTHENTICATED: "user cannot be authenticated.",
+  FORBIDDEN: "access is forbidden to this resource.",
   PASSWORD_STRENGTH: "password does not meet strength requirements.",
 };
