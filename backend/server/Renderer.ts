@@ -1,6 +1,7 @@
 import { createXMLRenderer, Helmet, renderSSR } from "../../deps.ts";
 
 export type RenderOptions = {
+  status?: number;
   contentType?: string;
   cacheControl?: string;
 };
@@ -24,13 +25,17 @@ export class Renderer {
   ): Response {
     let response: Response;
     if (typeof input === "string" || isBufferSource(input)) {
-      response = new Response(input);
+      response = new Response(input, {
+        status: options?.status,
+      });
       this.#setHeaders(response, {
         contentType: "application/json",
         ...options,
       });
     } else {
-      response = Response.json(input);
+      response = Response.json(input, {
+        status: options?.status,
+      });
       this.#setHeaders(response, options);
     }
     return response;
@@ -56,7 +61,9 @@ export class Renderer {
       }>${body.trim()}${footer.join("\n")}</body>
       </html>`;
     }
-    const response = new Response(html);
+    const response = new Response(html, {
+      status: options?.status,
+    });
     this.#setHeaders(response, {
       contentType: "text/html",
       ...options,
@@ -95,7 +102,9 @@ export class Renderer {
       xml = xmlDirective + this.#xmlSsr(input);
     }
 
-    const response = new Response(xml);
+    const response = new Response(xml, {
+      status: options?.status,
+    });
     this.#setHeaders(response, {
       contentType: "application/xml",
       ...options,
