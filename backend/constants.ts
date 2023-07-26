@@ -22,3 +22,11 @@ export const AUTH_ERROR = {
   FORBIDDEN: "access is forbidden to this resource.",
   PASSWORD_STRENGTH: "password does not meet strength requirements.",
 };
+
+export const APP_COLLECTION = {
+  COUNT: "count",
+  NONE: "none",
+  POST: "post",
+  SESSION: "session",
+  USER: "user",
+} as const;

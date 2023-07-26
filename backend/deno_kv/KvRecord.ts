@@ -1,7 +1,10 @@
-import { database } from "./database.ts";
+import { countBigInt, database } from "./database.ts";
+import { APP_COLLECTION } from "../constants.ts";
 import type { BasicKvRecord, JsonLike, Mutable } from "./types.ts";
 
-export abstract class KvRecord<T extends string = "none">
+export type KvCollection = typeof APP_COLLECTION[keyof typeof APP_COLLECTION];
+
+export abstract class KvRecord<T extends KvCollection = "none">
   implements BasicKvRecord {
   id: string;
   type: T;
@@ -36,15 +39,35 @@ export abstract class KvRecord<T extends string = "none">
 
   async set(): Promise<boolean> {
     const kv = await database();
+    const key = [this.type, this.id];
     this.modified = new Date();
+    const atomic = kv.atomic();
+    await atomic
+      .check({ key, versionstamp: null })
+      // Increment counter if not exist
+      .sum([APP_COLLECTION.COUNT, this.type], 1n)
+      .commit();
     const result = await kv.set([this.type, this.id], this);
     return result.ok ?? false;
   }
 
   async delete(): Promise<boolean> {
     const kv = await database();
-    await kv.delete([this.type, this.id]);
-    return true;
+    const key = [this.type, this.id];
+    const result = await kv.get<KvRecord<T>>(key);
+    // Delete and decrement counter if exist
+    if (result.versionstamp) {
+      const count = await countBigInt(this.type);
+      let newCount = count - 1n;
+      newCount = newCount < 0n ? 0n : newCount;
+      const atomic = kv.atomic();
+      await atomic
+        .delete(key)
+        .set([APP_COLLECTION.COUNT, this.type], new Deno.KvU64(newCount))
+        .commit();
+      return true;
+    }
+    return false;
   }
 
   toPublic(): Mutable<typeof this, "internal" | "hydrated"> {
@@ -57,7 +80,7 @@ export abstract class KvRecord<T extends string = "none">
     return this.toPublic();
   }
 
-  static likeJSON<T extends KvRecord<string>>(input: JsonLike<T>) {
+  static likeJSON<T extends KvRecord<KvCollection>>(input: JsonLike<T>) {
     return {
       ...input,
       created: new Date(input.created),
