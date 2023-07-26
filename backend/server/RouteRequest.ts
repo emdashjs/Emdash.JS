@@ -36,23 +36,23 @@ export class RouteRequest implements Body {
   }
 
   get arrayBuffer() {
-    return this.native.arrayBuffer;
+    return () => this.native.arrayBuffer();
   }
 
   get blob() {
-    return this.native.blob;
+    return () => this.native.blob();
   }
 
   get formData() {
-    return this.native.formData;
+    return () => this.native.formData();
   }
 
   get json() {
-    return this.native.json;
+    return () => this.native.json();
   }
 
   get text() {
-    return this.native.text;
+    return () => this.native.text();
   }
 
   get headers(): Headers {
