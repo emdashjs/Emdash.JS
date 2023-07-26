@@ -10,7 +10,7 @@ export class Session extends KvRecord<RecordType> {
   uuid: string;
   internal: undefined;
 
-  constructor(user: User) {
+  constructor(user: { id: string }) {
     super({
       id: user.id,
       type: RecordType,

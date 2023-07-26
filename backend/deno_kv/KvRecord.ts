@@ -2,7 +2,19 @@ import { countBigInt, database } from "./database.ts";
 import { APP_COLLECTION } from "../constants.ts";
 import type { BasicKvRecord, JsonLike, Mutable } from "./types.ts";
 
+/** Helper for making base props optional for JsonLike. */
+export type KvJsonPartial = "id" | "type" | "created" | "modified";
+/** Helper for excluding base props when typing JsonLike. */
+export type KvJsonExclude = Exclude<
+  keyof JsonLike<KvRecord>,
+  KvJsonPartial | undefined
+>;
 export type KvCollection = typeof APP_COLLECTION[keyof typeof APP_COLLECTION];
+export type KvRecordJson = JsonLike<
+  KvRecord<KvCollection>,
+  KvJsonExclude,
+  KvJsonPartial
+>;
 
 export abstract class KvRecord<T extends KvCollection = "none">
   implements BasicKvRecord {
@@ -14,11 +26,11 @@ export abstract class KvRecord<T extends KvCollection = "none">
   // deno-lint-ignore no-explicit-any
   abstract internal?: Record<string, any>;
 
-  constructor(record?: Partial<KvRecord<T>>) {
+  constructor(record?: Partial<KvRecord<T>> | KvRecordJson) {
     this.id = record?.id ?? crypto.randomUUID();
-    this.type = record?.type ?? "none" as T;
-    this.created = record?.created ?? new Date();
-    this.modified = record?.modified ?? this.created;
+    this.type = record?.type as T ?? "none" as T;
+    this.created = record?.created ? new Date(record.created) : new Date();
+    this.modified = record?.modified ? new Date(record.modified) : this.created;
     this.#hydrated = false;
   }
 
@@ -78,13 +90,5 @@ export abstract class KvRecord<T extends KvCollection = "none">
 
   toJSON() {
     return this.toPublic();
-  }
-
-  static likeJSON<T extends KvRecord<KvCollection>>(input: JsonLike<T>) {
-    return {
-      ...input,
-      created: new Date(input.created),
-      modified: new Date(input.modified),
-    };
   }
 }

@@ -1,12 +1,14 @@
 import { User, USER_BUILTIN } from "../auth/User.ts";
 import { APP_COLLECTION, APP_DATA } from "../constants.ts";
-import { KvRecord } from "../deno_kv/KvRecord.ts";
+import { KvJsonExclude, KvJsonPartial, KvRecord } from "../deno_kv/KvRecord.ts";
 import { count, database } from "../deno_kv/database.ts";
 import { JsonLike } from "../deno_kv/types.ts";
 import { formatSlug } from "./formats.ts";
 
 type RecordType = typeof APP_COLLECTION.POST;
 const RecordType = APP_COLLECTION.POST;
+
+export type PostJson = JsonLike<Post, KvJsonExclude, KvJsonPartial>;
 
 export class Post extends KvRecord<RecordType> {
   author: string;
@@ -17,18 +19,14 @@ export class Post extends KvRecord<RecordType> {
   title: string;
   internal = undefined;
 
-  constructor(record?: Partial<Post>) {
+  constructor(record?: Partial<Post> | PostJson) {
     super({
       id: record?.id ?? crypto.randomUUID(),
       type: record?.type ?? RecordType,
-      created: record?.created,
-      modified: record?.modified,
     });
     this.author = record?.author ?? APP_DATA.UUID;
     this.title = record?.title ?? "";
     this.content = record?.content ?? "";
-    this.created = record?.created ?? new Date();
-    this.modified = record?.modified ?? this.created;
     this.slug = record?.slug || this.title ? formatSlug(this.title) : this.id;
     this.subtitle = record?.subtitle;
     this.tags = record?.tags ?? [];
@@ -45,9 +43,5 @@ export class Post extends KvRecord<RecordType> {
 
   static async count(): Promise<number> {
     return await count(APP_COLLECTION.USER);
-  }
-
-  static fromJSON(input: JsonLike<Post>) {
-    return new Post(KvRecord.likeJSON(input));
   }
 }

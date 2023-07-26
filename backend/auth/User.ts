@@ -1,6 +1,6 @@
 import { toHashString } from "https://deno.land/std@0.195.0/crypto/to_hash_string.ts";
 import { APP_COLLECTION, APP_DATA, AUTH_ERROR } from "../constants.ts";
-import { KvRecord } from "../deno_kv/KvRecord.ts";
+import { KvJsonExclude, KvJsonPartial, KvRecord } from "../deno_kv/KvRecord.ts";
 import { BasicKvRecord, JsonLike } from "../deno_kv/types.ts";
 import { uuidv5 } from "./uuidv5.ts";
 import { count, database } from "../deno_kv/database.ts";
@@ -8,6 +8,14 @@ import isStrongPassword from "./isStrongPassword.ts";
 
 type RecordType = typeof APP_COLLECTION.USER;
 const RecordType = APP_COLLECTION.USER;
+
+export type UserJson = JsonLike<
+  User & {
+    password?: string;
+  },
+  "name" | KvJsonExclude,
+  KvJsonPartial
+>;
 
 export class User extends KvRecord<RecordType> {
   email: string;
@@ -20,22 +28,32 @@ export class User extends KvRecord<RecordType> {
     state: "enabled" | "disabled";
   };
 
-  constructor(record?: Partial<User>) {
+  constructor(record?: Partial<User> | UserJson) {
     super({
       id: record?.email ? User.id(record.email) : record?.id,
       type: record?.type ?? RecordType,
       created: record?.created,
       modified: record?.modified,
-    });
+    } as UserJson);
     this.email = record?.email ?? "";
     this.first_name = record?.first_name ?? "";
     this.last_name = record?.last_name ?? "";
     this.internal = {
-      passwordHash: record?.internal?.passwordHash ?? "",
-      passwordSalt: record?.internal?.passwordSalt ?? "",
-      roles: record?.internal?.roles ?? [],
-      state: record?.internal?.state ?? "disabled",
+      passwordHash: "",
+      passwordSalt: "",
+      roles: [],
+      state: "disabled",
     };
+    if (record && "internal" in record) {
+      this.internal = {
+        passwordHash: record?.internal?.passwordHash ??
+          this.internal.passwordHash,
+        passwordSalt: record?.internal?.passwordSalt ??
+          this.internal.passwordSalt,
+        roles: record?.internal?.roles ?? this.internal.roles,
+        state: record?.internal?.state ?? this.internal.state,
+      };
+    }
   }
 
   get name(): string {
@@ -81,7 +99,7 @@ export class User extends KvRecord<RecordType> {
   }
 
   static async create(
-    user: Omit<Partial<User>, "email"> & { email: string },
+    user: UserJson,
     password: string,
   ) {
     const exists = await User.get(user.email);
