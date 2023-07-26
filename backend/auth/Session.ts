@@ -1,5 +1,6 @@
-import { APP_DATA, AUTH_ERROR } from "../constants.ts";
+import { APP_COLLECTION, APP_DATA, AUTH_ERROR } from "../constants.ts";
 import { KvRecord } from "../deno_kv/KvRecord.ts";
+import { count } from "../deno_kv/database.ts";
 import { User } from "./User.ts";
 
 export class Session extends KvRecord<"session"> {
@@ -39,6 +40,10 @@ export class Session extends KvRecord<"session"> {
       await this.delete();
     }
     throw new Error(AUTH_ERROR.NOT_AUTHENTICATED);
+  }
+
+  static async count(): Promise<number> {
+    return await count(APP_COLLECTION.USER);
   }
 
   static ttl(): number {

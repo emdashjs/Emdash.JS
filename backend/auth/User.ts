@@ -1,9 +1,9 @@
 import { toHashString } from "https://deno.land/std@0.195.0/crypto/to_hash_string.ts";
-import { APP_DATA, AUTH_ERROR } from "../constants.ts";
+import { APP_COLLECTION, APP_DATA, AUTH_ERROR } from "../constants.ts";
 import { KvRecord } from "../deno_kv/KvRecord.ts";
 import { BasicKvRecord, JsonLike } from "../deno_kv/types.ts";
 import { uuidv5 } from "./uuidv5.ts";
-import { database } from "../deno_kv/database.ts";
+import { count, database } from "../deno_kv/database.ts";
 import isStrongPassword from "./isStrongPassword.ts";
 
 type RecordType = typeof RecordType;
@@ -92,6 +92,10 @@ export class User extends KvRecord<RecordType> {
     await newUser.setPassword(password);
     newUser.internal.state = "enabled";
     return newUser;
+  }
+
+  static async count(): Promise<number> {
+    return await count(APP_COLLECTION.USER);
   }
 
   static async get(idOrEmail: string) {

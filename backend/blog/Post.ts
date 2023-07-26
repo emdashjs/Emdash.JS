@@ -1,7 +1,7 @@
 import { User, USER_BUILTIN } from "../auth/User.ts";
-import { APP_DATA } from "../constants.ts";
+import { APP_COLLECTION, APP_DATA } from "../constants.ts";
 import { KvRecord } from "../deno_kv/KvRecord.ts";
-import { database } from "../deno_kv/database.ts";
+import { count, database } from "../deno_kv/database.ts";
 import { JsonLike } from "../deno_kv/types.ts";
 import { formatSlug } from "./formats.ts";
 
@@ -38,6 +38,10 @@ export class Post extends KvRecord<"post"> {
     const kv = await database();
     const user = await kv.get<User>(["user", this.author]);
     return user.value ?? USER_BUILTIN.NOT_EXIST;
+  }
+
+  static async count(): Promise<number> {
+    return await count(APP_COLLECTION.USER);
   }
 
   static fromJSON(input: JsonLike<Post>) {
