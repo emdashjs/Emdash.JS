@@ -1,28 +1,19 @@
-import { protectRoute } from "../../backend/auth/protectRoute.ts";
-import { RouteAdd } from "../../backend/server/mod.ts";
+import { protectRoute } from "../../backend/auth/mod.ts";
+import { Route, RouteAdd } from "../../backend/server/mod.ts";
 import { login } from "./login.ts";
 import { getUser, postUser } from "./user.ts";
 
-export const apiRoutes: RouteAdd<`/api/${string}`, string>[] = [
+export const apiRoutes: RouteAdd<`/api/${string}`, string>[] = Route.skipCache([
   {
     pattern: "POST:/api/login",
-    useCache: false,
     render: login,
   },
   {
-    pattern: {
-      method: "GET",
-      pathname: "/api/user/:id?",
-    },
-    useCache: false,
+    pattern: "GET:/api/user/:id?",
     render: protectRoute(getUser),
   },
   {
-    pattern: {
-      method: "POST",
-      pathname: "/api/user/:id?",
-    },
-    useCache: false,
+    pattern: "POST:/api/user/:id?",
     render: protectRoute(postUser),
   },
-];
+]);

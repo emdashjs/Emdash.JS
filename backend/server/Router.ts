@@ -1,6 +1,6 @@
 import { lookup } from "../../deps.ts";
-import { RouteRender, RouteRequest } from "./RouteRequest.ts";
-import { Route, RouteInit, RouteName } from "./Route.ts";
+import { RouteRequest } from "./RouteRequest.ts";
+import { Route, RouteAdd, RouteName } from "./Route.ts";
 import { ServerTiming } from "./ServerTiming.ts";
 import { Renderer } from "./Renderer.ts";
 import { APP_DATA, HTTP_CODE } from "../constants.ts";
@@ -87,11 +87,6 @@ export type RouteMap = Map<
   RouteName<`/${string}`, string>,
   Route<`/${string}`, string>
 >;
-export type RouteAdd<P extends `/${string}` = "/", M extends string = "*"> = {
-  pattern: RouteInit<P, M>;
-  useCache?: boolean;
-  render: RouteRender;
-};
 
 const STATIC_ROUTE = new Route("GET:/static/(.*)", async (request) => {
   const path = "." + request.url.pathname

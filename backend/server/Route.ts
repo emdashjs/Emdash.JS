@@ -61,6 +61,19 @@ export class Route<P extends `/${string}` = "/", M extends string = "*"> {
     request.useCache = this.useCache;
     return request;
   }
+
+  static skipCache<
+    T extends RouteAdd<`/${string}`, string> | RouteAdd<`/${string}`, string>[],
+  >(routes: T): T {
+    const mapper = (route: RouteAdd<`/${string}`, string>) => ({
+      ...route,
+      useCache: false,
+    });
+    if (Array.isArray(routes)) {
+      return routes.map(mapper) as T;
+    }
+    return mapper(routes) as T;
+  }
 }
 
 export type RouteInit<P extends `/${string}` = "/", M extends string = "*"> =
@@ -76,3 +89,9 @@ export type RouteObject<P extends `/${string}` = "/", M extends string = "*"> =
 
 export type RouteName<P extends `/${string}` = "/", M extends string = "*"> =
   `${M}:${P}`;
+
+export type RouteAdd<P extends `/${string}` = "/", M extends string = "*"> = {
+  pattern: RouteInit<P, M>;
+  useCache?: boolean;
+  render: RouteRender;
+};
