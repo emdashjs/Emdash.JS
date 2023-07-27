@@ -4,7 +4,7 @@
 /// <reference lib="dom.asynciterable" />
 /// <reference lib="deno.ns" />
 import { h } from "../deps.ts";
-import { RouteAdd } from "../backend/server/Router.ts";
+import { RouteAdd } from "../backend/server/Route.ts";
 import { App } from "./ui/App.tsx";
 import { apiRoutes } from "./api/routes.ts";
 
