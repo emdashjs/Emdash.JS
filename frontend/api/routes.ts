@@ -1,4 +1,3 @@
-import { protectRoute } from "../../backend/auth/mod.ts";
 import { Route, RouteAdd } from "../../backend/server/mod.ts";
 import { login } from "./login.ts";
 import { getPolicyPassword } from "./policy.ts";
@@ -15,10 +14,10 @@ export const apiRoutes: RouteAdd<`/api/${string}`, string>[] = Route.skipCache([
   },
   {
     pattern: "GET:/api/user/:id?",
-    render: protectRoute(getUser),
+    render: Route.protect(getUser),
   },
   {
     pattern: "POST:/api/user/:id?",
-    render: protectRoute(postUser),
+    render: Route.protect(postUser),
   },
 ]);

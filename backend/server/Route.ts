@@ -1,3 +1,4 @@
+import { protectRoute } from "../auth/protectRoute.ts";
 import { RouteRender, RouteRequest } from "./RouteRequest.ts";
 import { URLPatternPlus, URLPatternPlusInit } from "./URLPatternPlus.ts";
 
@@ -73,6 +74,10 @@ export class Route<P extends `/${string}` = "/", M extends string = "*"> {
       return routes.map(mapper) as T;
     }
     return mapper(routes) as T;
+  }
+
+  static protect(route: RouteRender) {
+    return protectRoute(route);
   }
 }
 
