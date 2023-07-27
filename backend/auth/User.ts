@@ -103,12 +103,13 @@ export class User extends KvRecord<RecordType> {
     password: string,
   ) {
     const exists = await User.get(user.email);
-    if (exists !== USER_BUILTIN.NOT_EXIST) {
+    if (!User.is(exists, USER_BUILTIN.NOT_EXIST)) {
+      await exists.setPassword(password);
       return exists;
     }
     const newUser = new User(user);
-    await newUser.setPassword(password);
     newUser.internal.state = "enabled";
+    await newUser.setPassword(password);
     return newUser;
   }
 
@@ -117,14 +118,19 @@ export class User extends KvRecord<RecordType> {
   }
 
   static async get(idOrEmail: string) {
-    const id = idOrEmail.includes("@") ? User.id(idOrEmail) : idOrEmail;
     const kv = await database();
-    const result = await kv.get<User>([RecordType, id]);
-    return result.value ?? USER_BUILTIN.NOT_EXIST;
+    const result = await kv.get<User>([RecordType, User.id(idOrEmail)]);
+    return result.value ? new User(result.value) : USER_BUILTIN.NOT_EXIST;
   }
 
-  static id(email: string): string {
-    return uuidv5(email, APP_DATA.UUID);
+  static id(idOrEmail: string): string {
+    return idOrEmail.includes("@")
+      ? uuidv5(idOrEmail, APP_DATA.UUID)
+      : idOrEmail;
+  }
+
+  static is(user1: User, user2: User) {
+    return user1.id === user2.id;
   }
 
   static isUser(record: BasicKvRecord): record is User {

@@ -1,7 +1,7 @@
 import { protectRoute } from "../../backend/auth/protectRoute.ts";
 import { RouteAdd } from "../../backend/server/mod.ts";
 import { login } from "./login.ts";
-import { getUser } from "./user.ts";
+import { getUser, postUser } from "./user.ts";
 
 export const apiRoutes: RouteAdd<`/api/${string}`, string>[] = [
   {
@@ -16,5 +16,13 @@ export const apiRoutes: RouteAdd<`/api/${string}`, string>[] = [
     },
     useCache: false,
     render: protectRoute(getUser),
+  },
+  {
+    pattern: {
+      method: "POST",
+      pathname: "/api/user/:id?",
+    },
+    useCache: false,
+    render: protectRoute(postUser),
   },
 ];

@@ -1,5 +1,6 @@
-import { User, USER_BUILTIN } from "../../backend/auth/mod.ts";
+import { User, USER_BUILTIN, UserJson } from "../../backend/auth/mod.ts";
 import { RouteRender } from "../../backend/server/mod.ts";
+import { ERROR, HTTP_CODE } from "../../mod.ts";
 
 export const getUser = async function getUser(request, renderer) {
   const id = request.routeParams.get("id") || request.searchParams.get("id") ||
@@ -16,4 +17,61 @@ export const getUser = async function getUser(request, renderer) {
   return renderer.json({ error: `user id ${id} does not exist.` }, {
     status: 404,
   });
+} as RouteRender;
+
+export const postUser = async function postUser(request, renderer) {
+  // deno-lint-ignore no-explicit-any
+  function assignUser(user1: User, user2: any) {
+    for (const key of Object.keys(user1)) {
+      const value = user2[key];
+      if (value !== undefined) {
+        // deno-lint-ignore no-explicit-any
+        (user1 as any)[key] = value;
+      }
+    }
+  }
+  const contentType = request.headers.get("content-type")?.trim().toLowerCase();
+  const formTypes = [
+    "application/x-www-form-urlencoded",
+    "multipart/form-data",
+  ];
+  let userJson = {} as UserJson;
+  if (contentType && formTypes.some((t) => contentType.startsWith(t))) {
+    const formData = await request.formData();
+    formData.forEach((rawValue, rawKey) => {
+      const key = rawKey as Exclude<keyof UserJson, undefined>;
+      if (key !== "type" && typeof rawValue === "string") {
+        userJson[key] = rawValue;
+      }
+    });
+  } else {
+    userJson = await request.json();
+  }
+  if (typeof userJson.password === "string") {
+    try {
+      const user = await User.create(userJson, userJson.password);
+      assignUser(user, userJson);
+      await user.set();
+      // TODO: Redirect on formdata submission? To where?
+      return renderer.json(user);
+    } catch (error) {
+      const serverErrror = renderer.json({ error: `${error?.message}` }, {
+        status: error?.message === ERROR.AUTH.PASSWORD_STRENGTH
+          ? HTTP_CODE.AUTH.PASSWORD_STRENGTH
+          : 500,
+      });
+      return serverErrror;
+    }
+  } else {
+    const user = await User.get(userJson.email);
+    if (User.is(user, USER_BUILTIN.NOT_EXIST)) {
+      return renderer.json(
+        { error: ERROR.RESOURCE.NOT_FOUND },
+        { status: HTTP_CODE.RESOURCE.NOT_FOUND },
+      );
+    }
+    assignUser(user, userJson);
+    await user.set();
+    return renderer.json(user);
+  }
 } as RouteRender;

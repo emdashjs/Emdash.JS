@@ -29,4 +29,27 @@ export const AUTH_ERROR = {
   NOT_AUTHENTICATED: "user cannot be authenticated.",
   FORBIDDEN: "access is forbidden to this resource.",
   PASSWORD_STRENGTH: "password does not meet strength requirements.",
+} as const;
+
+export type ERROR = typeof ERROR;
+export const ERROR = {
+  AUTH: AUTH_ERROR,
+  RESOURCE: {
+    NOT_FOUND: "resource could not be found.",
+  } as const,
+} as const;
+export type HTTP_CODE = {
+  [K in keyof ERROR]: {
+    [P in keyof ERROR[K]]: number;
+  };
 };
+export const HTTP_CODE = {
+  AUTH: {
+    NOT_AUTHENTICATED: 401,
+    FORBIDDEN: 403,
+    PASSWORD_STRENGTH: 422,
+  },
+  RESOURCE: {
+    NOT_FOUND: 404,
+  },
+} as const satisfies HTTP_CODE;
