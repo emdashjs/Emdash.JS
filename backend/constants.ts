@@ -25,31 +25,47 @@ export const APP_DATA = {
     : getScoringOptions(defaultRules),
 } as const;
 
-export const AUTH_ERROR = {
-  NOT_AUTHENTICATED: "user cannot be authenticated.",
-  FORBIDDEN: "access is forbidden to this resource.",
-  PASSWORD_STRENGTH: "password does not meet strength requirements.",
-} as const;
-
 export type ERROR = typeof ERROR;
 export const ERROR = {
-  AUTH: AUTH_ERROR,
+  AUTH: {
+    NOT_AUTHENTICATED: "user cannot be authenticated.",
+    FORBIDDEN: "access is forbidden to this resource.",
+    PASSWORD_STRENGTH: "password does not meet strength requirements.",
+  },
   RESOURCE: {
     NOT_FOUND: "resource could not be found.",
-  } as const,
+  },
+  SERVER: {
+    INTERNAL: "server encountered an unspecified error.",
+  },
 } as const;
-export type HTTP_CODE = {
-  [K in keyof ERROR]: {
-    [P in keyof ERROR[K]]: number;
-  };
-};
+export type HTTP_CODE = typeof HTTP_CODE;
 export const HTTP_CODE = {
   AUTH: {
     NOT_AUTHENTICATED: 401,
     FORBIDDEN: 403,
     PASSWORD_STRENGTH: 422,
   },
+  REDIRECT: {
+    SEE_OTHER: 303,
+    TEMPORARY: 307,
+  },
   RESOURCE: {
+    OK: 200,
     NOT_FOUND: 404,
   },
-} as const satisfies HTTP_CODE;
+  SERVER: {
+    INTERNAL: 500,
+  },
+} as const satisfies ERROR_CODE;
+type ERROR_CODE =
+  & {
+    [K in keyof ERROR]:
+      & {
+        [P in keyof ERROR[K]]: number;
+      }
+      & {
+        [S: string]: number;
+      };
+  }
+  & Record<string, Record<string, number>>;

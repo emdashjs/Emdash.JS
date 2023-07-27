@@ -1,5 +1,5 @@
 import { Session, User } from "../../backend/auth/mod.ts";
-import { AUTH_ERROR } from "../../backend/constants.ts";
+import { ERROR, HTTP_CODE } from "../../backend/constants.ts";
 import { RouteRender } from "../../backend/server/mod.ts";
 
 export const login = async function login(request, renderer) {
@@ -11,7 +11,9 @@ export const login = async function login(request, renderer) {
     await user.authenticate(password);
   } catch (error) {
     const serverErrror = renderer.json({ error: `${error?.message}` }, {
-      status: error?.message === AUTH_ERROR.NOT_AUTHENTICATED ? 401 : 500,
+      status: error?.message === ERROR.AUTH.NOT_AUTHENTICATED
+        ? HTTP_CODE.AUTH.NOT_AUTHENTICATED
+        : HTTP_CODE.SERVER.INTERNAL,
     });
     serverErrror.headers.set(
       "WWW-Authenticate",
@@ -24,7 +26,7 @@ export const login = async function login(request, renderer) {
   const redirect = `${request.origin}${
     request.url.searchParams.get("landing") ?? ""
   }`;
-  const response = Response.redirect(redirect, 302);
+  const response = Response.redirect(redirect, HTTP_CODE.REDIRECT.SEE_OTHER);
   response.headers.set("Cookie", `session=${uuid}; user=${user.id}`);
   return response;
 } as RouteRender;

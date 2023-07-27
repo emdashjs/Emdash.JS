@@ -3,7 +3,7 @@ import { RouteRender, RouteRequest } from "./RouteRequest.ts";
 import { Route, RouteInit, RouteName } from "./Route.ts";
 import { ServerTiming } from "./ServerTiming.ts";
 import { Renderer } from "./Renderer.ts";
-import { APP_DATA } from "../constants.ts";
+import { APP_DATA, HTTP_CODE } from "../constants.ts";
 
 export class Router {
   #renderer = new Renderer();
@@ -57,7 +57,10 @@ export class Router {
         return response;
       }
 
-      return Response.redirect(routeRequest.url.origin, 307);
+      return Response.redirect(
+        routeRequest.url.origin,
+        HTTP_CODE.REDIRECT.TEMPORARY,
+      );
     };
   }
 
@@ -102,11 +105,11 @@ const STATIC_ROUTE = new Route("GET:/static/(.*)", async (request) => {
   try {
     content = await Deno.readFile(path);
     contentType = lookup(path) ?? "text/plain";
-    status = 200;
+    status = HTTP_CODE.RESOURCE.OK;
   } catch (_err) {
     content = "404: File not found.";
     contentType = "text/html";
-    status = 404;
+    status = HTTP_CODE.RESOURCE.NOT_FOUND;
   }
   return new Response(content, {
     status,

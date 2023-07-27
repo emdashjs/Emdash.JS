@@ -9,14 +9,15 @@ export const getUser = async function getUser(request, renderer) {
     const dbTiming = request.timing.start("Database");
     const user = await User.get(id);
     dbTiming.finish();
-    if (user !== USER_BUILTIN.NOT_EXIST) {
+    if (!User.is(user, USER_BUILTIN.NOT_EXIST)) {
       request.timing.start("Render");
       return renderer.json(user);
     }
   }
-  return renderer.json({ error: `user id ${id} does not exist.` }, {
-    status: 404,
-  });
+  return renderer.json(
+    { error: `user id ${id} does not exist.` },
+    { status: HTTP_CODE.RESOURCE.NOT_FOUND },
+  );
 } as RouteRender;
 
 export const postUser = async function postUser(request, renderer) {
@@ -58,7 +59,7 @@ export const postUser = async function postUser(request, renderer) {
       const serverErrror = renderer.json({ error: `${error?.message}` }, {
         status: error?.message === ERROR.AUTH.PASSWORD_STRENGTH
           ? HTTP_CODE.AUTH.PASSWORD_STRENGTH
-          : 500,
+          : HTTP_CODE.SERVER.INTERNAL,
       });
       return serverErrror;
     }
