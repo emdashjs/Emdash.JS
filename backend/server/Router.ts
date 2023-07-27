@@ -47,7 +47,7 @@ export class Router {
           return response;
         }
       }
-      const response = await routeRequest.render(this.#renderer);
+      const response = await routeRequest.render();
 
       if (response) {
         response.headers.set("Server-Timing", timing.toString());
@@ -66,7 +66,7 @@ export class Router {
 
   #routeRequest(request: Request, info: Deno.ServeHandlerInfo) {
     const measure = ServerTiming.get(request).start("Route");
-    const routeRequest = new RouteRequest(request, info);
+    const routeRequest = new RouteRequest(request, info, this.#renderer);
     for (const route of this.#routes.values()) {
       if (route.test(routeRequest)) {
         route.exec(routeRequest);

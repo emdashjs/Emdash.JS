@@ -4,7 +4,7 @@ import { Session } from "./Session.ts";
 import { User } from "./User.ts";
 
 export function protectRoute(routeRender: RouteRender): RouteRender {
-  return async (request, renderer) => {
+  return async (request) => {
     if (!(APP_DATA.FIRST_USER && await User.count() === 0)) {
       const clone = request.clone();
       const sessionId = clone.cookies.get("session");
@@ -20,7 +20,7 @@ export function protectRoute(routeRender: RouteRender): RouteRender {
           } catch (error) {
             // Skip NOT_AUTHENTICATED to try a password authentication.
             if (error?.message !== ERROR.AUTH.NOT_AUTHENTICATED) {
-              return unauthorizedResponse(renderer, error);
+              return unauthorizedResponse(clone.respondWith, error);
             }
           }
         }
@@ -28,16 +28,16 @@ export function protectRoute(routeRender: RouteRender): RouteRender {
           try {
             await user.authenticate(auth.password);
           } catch (error) {
-            return unauthorizedResponse(renderer, error);
+            return unauthorizedResponse(clone.respondWith, error);
           }
         } else {
-          return unauthorizedResponse(renderer);
+          return unauthorizedResponse(clone.respondWith);
         }
       } else {
-        return forbiddenResponse(renderer);
+        return forbiddenResponse(clone.respondWith);
       }
     }
-    return await routeRender(request, renderer);
+    return await routeRender(request);
   };
 }
 

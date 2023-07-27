@@ -11,9 +11,9 @@ import { apiRoutes } from "./api/routes.ts";
 export const routes: RouteAdd<`/${string}`, string>[] = [
   {
     pattern: "GET:/",
-    render: (request, renderer) => {
+    render: (request) => {
       request.timing.start("Render");
-      return renderer.html(<App>Hello, world!</App>);
+      return request.respondWith.html(<App>Hello, world!</App>);
     },
   },
   ...apiRoutes,

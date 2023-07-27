@@ -10,10 +10,12 @@ export class RouteRequest implements Body {
   #info: Deno.ServeHandlerInfo;
   #renderFunc: RouteRender;
   #cookieMap: CookieMap;
+  #renderer: Renderer;
 
   constructor(
     request: Request,
     info: Deno.ServeHandlerInfo,
+    renderer: Renderer,
   ) {
     this.native = request;
     this.#info = info;
@@ -21,6 +23,7 @@ export class RouteRequest implements Body {
     this.#renderFunc = DEFAULT_RENDER;
     this.useCache = true;
     this.#cookieMap = new CookieMap(request);
+    this.#renderer = renderer;
   }
 
   get cookies() {
@@ -81,9 +84,7 @@ export class RouteRequest implements Body {
   }
 
   get render() {
-    return (renderer: Renderer) => {
-      return this.#renderFunc(this, renderer);
-    };
+    return () => this.#renderFunc(this);
   }
 
   get searchParams() {
@@ -92,6 +93,10 @@ export class RouteRequest implements Body {
 
   get timing(): ServerTiming {
     return ServerTiming.get(this.native);
+  }
+
+  get respondWith(): Renderer {
+    return this.#renderer;
   }
 
   setRender(render: RouteRender): void {
@@ -107,7 +112,7 @@ export class RouteRequest implements Body {
         return this.native.url;
       },
     });
-    const request = new RouteRequest(clone, this.#info);
+    const request = new RouteRequest(clone, this.#info, this.#renderer);
     request.setRender(this.#renderFunc);
     return request;
   }
@@ -115,7 +120,6 @@ export class RouteRequest implements Body {
 
 export type RouteRender = (
   request: RouteRequest,
-  renderer: Renderer,
 ) => Response | void | Promise<Response | void>;
 
 export type RouteRemote = {
@@ -125,10 +129,7 @@ export type RouteRemote = {
   transport: "tcp" | "udp";
 };
 
-export const DEFAULT_RENDER = async (
-  _request: RouteRequest,
-  _renderer: Renderer,
-) => {};
+export const DEFAULT_RENDER = async (_request: RouteRequest) => {};
 
 export class RouteURL extends URL {
   #method: string;

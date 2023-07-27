@@ -2,7 +2,7 @@ import { User, USER_BUILTIN, UserJson } from "../../backend/auth/mod.ts";
 import { RouteRender } from "../../backend/server/mod.ts";
 import { ERROR, HTTP_CODE } from "../../mod.ts";
 
-export const getUser = async function getUser(request, renderer) {
+export const getUser = async function getUser(request) {
   const id = request.routeParams.get("id") || request.searchParams.get("id") ||
     undefined;
   if (id) {
@@ -11,16 +11,16 @@ export const getUser = async function getUser(request, renderer) {
     dbTiming.finish();
     if (!User.is(user, USER_BUILTIN.NOT_EXIST)) {
       request.timing.start("Render");
-      return renderer.json(user);
+      return request.respondWith.json(user);
     }
   }
-  return renderer.json(
+  return request.respondWith.json(
     { error: `user id ${id} does not exist.` },
     { status: HTTP_CODE.RESOURCE.NOT_FOUND },
   );
 } as RouteRender;
 
-export const postUser = async function postUser(request, renderer) {
+export const postUser = async function postUser(request) {
   // deno-lint-ignore no-explicit-any
   function assignUser(user1: User, user2: any) {
     for (const key of Object.keys(user1)) {
@@ -54,9 +54,11 @@ export const postUser = async function postUser(request, renderer) {
       assignUser(user, userJson);
       await user.set();
       // TODO: Redirect on formdata submission? To where?
-      return renderer.json(user);
+      return request.respondWith.json(user);
     } catch (error) {
-      const serverErrror = renderer.json({ error: `${error?.message}` }, {
+      const serverErrror = request.respondWith.json({
+        error: `${error?.message}`,
+      }, {
         status: error?.message === ERROR.AUTH.PASSWORD_STRENGTH
           ? HTTP_CODE.AUTH.PASSWORD_STRENGTH
           : HTTP_CODE.SERVER.INTERNAL,
@@ -66,13 +68,13 @@ export const postUser = async function postUser(request, renderer) {
   } else {
     const user = await User.get(userJson.email);
     if (User.is(user, USER_BUILTIN.NOT_EXIST)) {
-      return renderer.json(
+      return request.respondWith.json(
         { error: ERROR.RESOURCE.NOT_FOUND },
         { status: HTTP_CODE.RESOURCE.NOT_FOUND },
       );
     }
     assignUser(user, userJson);
     await user.set();
-    return renderer.json(user);
+    return request.respondWith.json(user);
   }
 } as RouteRender;
