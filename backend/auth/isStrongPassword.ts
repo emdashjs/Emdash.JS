@@ -25,7 +25,61 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-export type ScoringOptions = typeof defaultOptions;
+export type ScoringOptions = typeof defaultScoring;
+export type StrengthOptions = typeof defaultStrength;
+
+export function scorePassword(
+  password: string,
+  options?: Partial<ScoringOptions>,
+) {
+  const analysis = analyzePassword(password);
+  const scoringOptions = {
+    ...options,
+    ...defaultScoring,
+  };
+  let points = 0;
+  points += analysis.uniqueChars * scoringOptions.pointsPerUnique;
+  points += (analysis.length - analysis.uniqueChars) *
+    scoringOptions.pointsPerRepeat;
+  if (analysis.lowercaseCount > 0) {
+    points += scoringOptions.pointsForContainingLower;
+  }
+  if (analysis.uppercaseCount > 0) {
+    points += scoringOptions.pointsForContainingUpper;
+  }
+  if (analysis.numberCount > 0) {
+    points += scoringOptions.pointsForContainingNumber;
+  }
+  if (analysis.symbolCount > 0) {
+    points += scoringOptions.pointsForContainingSymbol;
+  }
+  return points;
+}
+
+export function isStrongPassword(
+  password: string,
+  options?: Partial<StrengthOptions>,
+) {
+  const analysis = analyzePassword(password);
+  const merged = {
+    ...options,
+    ...defaultStrength,
+  };
+  return analysis.length >= merged.minLength &&
+    analysis.lowercaseCount >= merged.minLowercase &&
+    analysis.uppercaseCount >= merged.minUppercase &&
+    analysis.numberCount >= merged.minNumbers &&
+    analysis.symbolCount >= merged.minSymbols;
+}
+
+export function getScoringOptions(optionString?: string): ScoringOptions {
+  return getOptions(defaultScoring, optionString);
+}
+
+export function getStrengthOptions(optionString?: string): StrengthOptions {
+  return getOptions(defaultStrength, optionString);
+}
+
 type PasswordAnalysis = {
   length: number;
   uniqueChars: number;
@@ -40,13 +94,14 @@ const lowerCaseRegex = /^[a-z]$/;
 const numberRegex = /^[0-9]$/;
 const symbolRegex = /^[-#!$@£%^&*()_+|~=`{}\[\]:";'<>?,.\/ ]$/;
 
-const defaultOptions = {
+const defaultStrength = {
   minLength: 8,
   minLowercase: 1,
   minUppercase: 1,
   minNumbers: 1,
   minSymbols: 1,
-  returnScore: false,
+};
+const defaultScoring = {
   pointsPerUnique: 1,
   pointsPerRepeat: 0.5,
   pointsForContainingLower: 10,
@@ -94,65 +149,22 @@ function analyzePassword(password: string) {
   return analysis;
 }
 
-function scorePassword(
-  analysis: PasswordAnalysis,
-  scoringOptions: ScoringOptions,
-) {
-  let points = 0;
-  points += analysis.uniqueChars * scoringOptions.pointsPerUnique;
-  points += (analysis.length - analysis.uniqueChars) *
-    scoringOptions.pointsPerRepeat;
-  if (analysis.lowercaseCount > 0) {
-    points += scoringOptions.pointsForContainingLower;
-  }
-  if (analysis.uppercaseCount > 0) {
-    points += scoringOptions.pointsForContainingUpper;
-  }
-  if (analysis.numberCount > 0) {
-    points += scoringOptions.pointsForContainingNumber;
-  }
-  if (analysis.symbolCount > 0) {
-    points += scoringOptions.pointsForContainingSymbol;
-  }
-  return points;
-}
-
-export default function isStrongPassword(
-  str: string,
-  options?: Partial<ScoringOptions>,
-) {
-  const analysis = analyzePassword(str);
-  const merged = {
-    ...options,
-    ...defaultOptions,
-  };
-  if (merged.returnScore) {
-    return scorePassword(analysis, merged);
-  }
-  return analysis.length >= merged.minLength &&
-    analysis.lowercaseCount >= merged.minLowercase &&
-    analysis.uppercaseCount >= merged.minUppercase &&
-    analysis.numberCount >= merged.minNumbers &&
-    analysis.symbolCount >= merged.minSymbols;
-}
-
-export function getScoringOptions(optionString?: string) {
+function getOptions<T extends ScoringOptions | StrengthOptions>(
+  optionDict: T,
+  optionString?: string,
+): T {
   optionString = optionString ?? "";
   const options: Partial<ScoringOptions> = {};
   for (const pair of optionString.split(";")) {
     const [keyRaw, valueRaw] = pair.trim().split(":");
     const key = keyRaw.trim() as keyof ScoringOptions;
     const value: string | undefined = valueRaw?.trim();
-    if (value && key in defaultOptions) {
-      if (key === "returnScore") {
-        options[key] = value === "true";
-      } else {
-        const num = Number.parseInt(value, 10);
-        if (!Number.isNaN(num)) {
-          options[key] = num;
-        }
+    if (value && key in optionDict) {
+      const num = Number.parseInt(value, 10);
+      if (!Number.isNaN(num)) {
+        options[key] = num;
       }
     }
   }
-  return options;
+  return Object.assign({}, optionDict, options);
 }

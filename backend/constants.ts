@@ -1,4 +1,4 @@
-import { getScoringOptions } from "./auth/isStrongPassword.ts";
+import { getStrengthOptions } from "./auth/isStrongPassword.ts";
 
 export const APP_COLLECTION = {
   COUNT: "count",
@@ -10,7 +10,7 @@ export const APP_COLLECTION = {
 
 const defaultRules =
   "minLength:12;minLowercase:2;minUppercase:2;minNumbers:2;minSymbols:2";
-const providedRules = Deno.env.get("APP_DATA_PASSWORD_RULES")?.trim() ?? "";
+const providedRules = Deno.env.get("APP_DATA_PASSWORD_RULES")?.trim();
 const firstUser = Deno.env.get("APP_DATA_FIRST_USER")?.toLowerCase() ?? "true";
 export const APP_DATA = {
   FIRST_USER: firstUser === "true",
@@ -21,8 +21,8 @@ export const APP_DATA = {
   UUID: Deno.env.get("APP_DATA_UUID") ?? "bab51817-3eac-4726-8d3b-0a57f886e8bf",
   EMAIL: Deno.env.get("APP_DATA_EMAIL") ?? "",
   PASSWORD_RULES: providedRules
-    ? getScoringOptions(providedRules)
-    : getScoringOptions(defaultRules),
+    ? getStrengthOptions(providedRules)
+    : getStrengthOptions(defaultRules),
 } as const;
 
 export type ERROR = typeof ERROR;
