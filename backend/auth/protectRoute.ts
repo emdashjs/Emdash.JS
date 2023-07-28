@@ -1,22 +1,19 @@
 import { Renderer, RouteRender } from "../server/mod.ts";
 import { APP_DATA, ERROR, HTTP_CODE } from "../constants.ts";
-import { Session } from "./Session.ts";
 import { User } from "./User.ts";
+import { Session } from "./Session.ts";
 
 export function protectRoute(routeRender: RouteRender): RouteRender {
   return async (request) => {
     if (!(APP_DATA.FIRST_USER && await User.count() === 0)) {
       const clone = request.clone();
-      const sessionId = clone.cookies.get("session");
       const auth = getUserAuth(clone.headers.get("Authorization"));
-      const email = auth.email ?? clone.cookies.get("email");
-      const user = await User.get(email ?? "@");
+      const user = await User.get(auth.email ?? clone.session?.id ?? "@");
 
       if (user.internal.state === "enabled") {
-        if (sessionId) {
-          const session = new Session(user);
+        if (request.session) {
           try {
-            await session.authenticate(sessionId);
+            await request.session.authenticate(request.session.token);
           } catch (error) {
             // Skip NOT_AUTHENTICATED to try a password authentication.
             if (error?.message !== ERROR.AUTH.NOT_AUTHENTICATED) {
@@ -24,9 +21,10 @@ export function protectRoute(routeRender: RouteRender): RouteRender {
             }
           }
         }
-        if (email && auth.password) {
+        if (auth.email && auth.password) {
           try {
             await user.authenticate(auth.password);
+            request.session = new Session(user);
           } catch (error) {
             return unauthorizedResponse(clone.respondWith, error);
           }

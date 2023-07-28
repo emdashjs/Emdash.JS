@@ -6,8 +6,8 @@ import {
   KvRecord,
 } from "../deno_kv/KvRecord.ts";
 import { count, database } from "../deno_kv/database.ts";
-import { User } from "./User.ts";
-import { Base64 } from "../../deps.ts";
+import { User, USER_BUILTIN } from "./User.ts";
+import { Base64, CookieMap } from "../../deps.ts";
 import * as UUID from "./uuidv5.ts";
 import { JsonLike } from "../deno_kv/types.ts";
 
@@ -22,7 +22,8 @@ type SessionLike = Pick<Partial<Session>, "created" | "modified" | "token"> & {
 };
 type RecordType = typeof APP_COLLECTION.SESSION;
 const RecordType = APP_COLLECTION.SESSION;
-// TODO: more robust session handling such as sending cookie as base64 email:token
+const COOKIE_NAME = "app_session";
+
 export class Session extends KvRecord<RecordType> {
   token: string;
   internal: undefined;
@@ -44,47 +45,114 @@ export class Session extends KvRecord<RecordType> {
   async createToken(): Promise<string> {
     await this.get();
     if (this.expired) {
-      return this.token = "";
+      this.created = new Date();
+      this.modified = this.created;
+      this.token = "";
     }
     if (!this.token) {
       const idBytes = UUID.parse(this.id);
       const dateBytes = dateToBytes(this.created);
-      const randomBytes = crypto.getRandomValues(new Uint8Array(135));
-      const bytes = new Uint8Array([
+      const randomness = 64 - idBytes.length - dateBytes.length;
+      const randomBytes = crypto.getRandomValues(new Uint8Array(randomness));
+      const dataBytes = new Uint8Array([
         ...idBytes,
         ...dateBytes,
         ...randomBytes,
       ]);
+      const signedBytes = await Session.sign(dataBytes);
+      const bytes = new Uint8Array([...dataBytes, ...signedBytes]);
       this.token = Base64.encode(bytes);
       await this.set();
     }
     return this.token;
   }
 
+  setCookie(response: Response) {
+    const cookieMap = new CookieMap(new Headers(), { response });
+    cookieMap.set(COOKIE_NAME, this.token, {
+      httpOnly: true,
+      secure: true,
+    });
+  }
+
+  async validate(): Promise<boolean> {
+    const user = await User.get(this.id);
+    if (
+      // User must exist in the system
+      !User.is(user, USER_BUILTIN.NOT_EXIST) &&
+      // User must be enabled
+      user.internal.state === "enabled"
+    ) {
+      // Token must not be expired, not empty, and verified
+      return !this.expired &&
+        this.token !== "" &&
+        await Session.verify(Base64.decode(this.token));
+    }
+    return false;
+  }
+
   async authenticate(token: string): Promise<User> {
-    if (await this.get() && this.token === token) {
+    if (
+      // Token must exist in the system
+      await this.get() &&
+      // Received token must be verified
+      await Session.verify(Base64.decode(token)) &&
+      // And must match the retrieved token
+      this.token === token
+    ) {
+      // Token must not be expired
       if (!this.expired) {
         return User.get(this.id);
       }
+      // Delete token from system if expired
       this.token = "";
       await this.delete();
     }
+    // Throw unauthenticed if no user returned.
     throw new Error(ERROR.AUTH.NOT_AUTHENTICATED);
   }
+
+  static key?: CryptoKey;
 
   static async count(): Promise<number> {
     return await count(APP_COLLECTION.USER);
   }
 
-  static async fromToken(token: string) {
+  static fromCookie(cookies: CookieMap) {
+    const cookie = cookies.get(COOKIE_NAME)?.trim();
+    if (cookie) {
+      return Session.fromToken(cookie);
+    }
+  }
+
+  static fromToken(token: string) {
     const bytes = Base64.decode(token);
     const id = UUID.unsafeStringify(bytes.slice(0, 16));
-    return await newSession(id);
+    const created = bytesToDate(bytes.slice(16, 25));
+    return new Session({
+      id,
+      created,
+      token,
+    });
   }
 
   static async get(idOrEmail: string) {
     const id = User.id(idOrEmail);
-    return await newSession(id);
+    const kv = await database();
+    const result = await kv.get<Session>([RecordType, id]);
+    return result.value ? new Session(result.value) : new Session({ id });
+  }
+
+  static async sign(data: Uint8Array): Promise<Uint8Array> {
+    if (!Session.key) {
+      Session.key = await importSessionKey();
+    }
+    const signed = await crypto.subtle.sign(
+      { name: "HMAC", hash: "SHA-512" },
+      Session.key,
+      data,
+    );
+    return new Uint8Array(signed);
   }
 
   static ttl(): number {
@@ -99,6 +167,18 @@ export class Session extends KvRecord<RecordType> {
       count = fallback;
     }
     return TTL_KIND_MS[kind] * count;
+  }
+
+  static async verify(bytes: Uint8Array): Promise<boolean> {
+    if (!Session.key) {
+      Session.key = await importSessionKey();
+    }
+    return await crypto.subtle.verify(
+      { name: "HMAC", hash: "SHA-512" },
+      Session.key,
+      bytes.slice(64),
+      bytes.slice(0, 64),
+    );
   }
 }
 
@@ -145,8 +225,13 @@ const TTL_KIND_CHECK = {
   m: [10, 30],
 } as const;
 const TTL_KEYS = Object.keys(TTL_KIND_MS) as TtlKind[];
-async function newSession(id: string): Promise<Session> {
-  const kv = await database();
-  const result = await kv.get<Session>([RecordType, id]);
-  return result.value ? new Session(result.value) : new Session({ id });
+async function importSessionKey() {
+  const encoder = new TextEncoder();
+  return await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(APP_DATA.SESSION_KEY || APP_DATA.UUID),
+    { name: "HMAC", hash: "SHA-512" },
+    false,
+    ["sign", "verify"],
+  );
 }

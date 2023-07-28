@@ -1,12 +1,14 @@
 import { CookieMap } from "../../deps.ts";
+import { Session } from "../auth/mod.ts";
 import { Renderer } from "./Renderer.ts";
 import { ServerTiming } from "./ServerTiming.ts";
 
 export class RouteRequest implements Body {
-  url: RouteURL;
   native: Request;
   routeParams = new URLSearchParams();
+  url: RouteURL;
   useCache: boolean;
+  session?: Session;
   #info: Deno.ServeHandlerInfo;
   #renderFunc: RouteRender;
   #cookieMap: CookieMap;
@@ -14,8 +16,10 @@ export class RouteRequest implements Body {
 
   constructor(
     request: Request,
-    info: Deno.ServeHandlerInfo,
-    renderer: Renderer,
+    { info, renderer }: {
+      info: Deno.ServeHandlerInfo;
+      renderer: Renderer;
+    },
   ) {
     this.native = request;
     this.#info = info;
@@ -24,6 +28,7 @@ export class RouteRequest implements Body {
     this.useCache = true;
     this.#cookieMap = new CookieMap(request);
     this.#renderer = renderer;
+    this.session = Session.fromCookie(this.#cookieMap);
   }
 
   get cookies() {
@@ -112,7 +117,10 @@ export class RouteRequest implements Body {
         return this.native.url;
       },
     });
-    const request = new RouteRequest(clone, this.#info, this.#renderer);
+    const request = new RouteRequest(clone, {
+      info: this.#info,
+      renderer: this.#renderer,
+    });
     request.setRender(this.#renderFunc);
     return request;
   }

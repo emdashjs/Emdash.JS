@@ -24,12 +24,11 @@ export const login = async function login(request) {
     );
     return serverErrror;
   }
-  const session = new Session(user);
-  const uuid = await session.getUuid();
   const redirect = `${request.origin}${
     request.url.searchParams.get("landing") ?? ""
   }`;
   const response = Response.redirect(redirect, HTTP_CODE.REDIRECT.SEE_OTHER);
-  response.headers.set("Cookie", `session=${uuid}; user=${user.id}`);
+  request.session = new Session(user);
+  await request.session.createToken();
   return response;
 } as RouteRender;

@@ -44,6 +44,7 @@ export class Router {
         if (cached) {
           const response = cached.clone();
           response.headers.set("Server-Timing", timing.toString());
+          routeRequest.session?.setCookie(response);
           return response;
         }
       }
@@ -51,6 +52,7 @@ export class Router {
 
       if (response) {
         response.headers.set("Server-Timing", timing.toString());
+        routeRequest.session?.setCookie(response);
         if (routeRequest.useCache) {
           await this.cache?.put(request, response.clone());
         }
@@ -66,7 +68,10 @@ export class Router {
 
   #routeRequest(request: Request, info: Deno.ServeHandlerInfo) {
     const measure = ServerTiming.get(request).start("Route");
-    const routeRequest = new RouteRequest(request, info, this.#renderer);
+    const routeRequest = new RouteRequest(request, {
+      info,
+      renderer: this.#renderer,
+    });
     for (const route of this.#routes.values()) {
       if (route.test(routeRequest)) {
         route.exec(routeRequest);
