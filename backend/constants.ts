@@ -27,7 +27,7 @@ export const APP_DATA = {
 } as const;
 
 if (!APP_DATA.SESSION_KEY) {
-  console.warn("!! NO SESSION KEY SET, ALL USER SESSIONS ARE INSECURE. !!");
+  console.warn("!!   NO SESSION KEY SET, ALL USER SESSIONS ARE INSECURE.   !!");
   console.warn('!! SET ENVIRONMENT VAR "APP_DATA_SESSION_KEY" IMMEDIATELY. !!');
 }
 

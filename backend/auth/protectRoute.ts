@@ -11,9 +11,13 @@ export function protectRoute(routeRender: RouteRender): RouteRender {
       const user = await User.get(auth.email ?? clone.session?.id ?? "@");
 
       if (user.internal.state === "enabled") {
+        let authenticated = false;
         if (request.session) {
           try {
-            await request.session.authenticate(request.session.token);
+            const result = await request.session.authenticate(
+              request.session.token,
+            );
+            authenticated = User.is(result, user);
           } catch (error) {
             // Skip NOT_AUTHENTICATED to try a password authentication.
             if (error?.message !== ERROR.AUTH.NOT_AUTHENTICATED) {
@@ -21,14 +25,17 @@ export function protectRoute(routeRender: RouteRender): RouteRender {
             }
           }
         }
-        if (auth.email && auth.password) {
+        if (!authenticated && auth.email && auth.password) {
           try {
             await user.authenticate(auth.password);
             request.session = new Session(user);
+            await request.session.createToken();
+            authenticated = true;
           } catch (error) {
             return unauthorizedResponse(clone.respondWith, error);
           }
-        } else {
+        }
+        if (!authenticated) {
           return unauthorizedResponse(clone.respondWith);
         }
       } else {

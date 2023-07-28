@@ -68,7 +68,7 @@ export class Session extends KvRecord<RecordType> {
   }
 
   setCookie(response: Response) {
-    const cookieMap = new CookieMap(new Headers(), { response });
+    const cookieMap = new CookieMap(new Headers(), { response, secure: true });
     cookieMap.set(COOKIE_NAME, this.token, {
       httpOnly: true,
       secure: true,
