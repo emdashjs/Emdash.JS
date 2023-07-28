@@ -37,7 +37,7 @@ export function uuidv5(name: string, namespace: string): string {
   return unsafeStringify(bytes);
 }
 
-function parse(uuid: string): Uint8Array {
+export function parse(uuid: string): Uint8Array {
   let v;
   const bytes = new Uint8Array(16);
 
@@ -71,7 +71,7 @@ function parse(uuid: string): Uint8Array {
   return bytes;
 }
 
-function unsafeStringify(arr: number[] | Uint8Array, offset = 0) {
+export function unsafeStringify(arr: number[] | Uint8Array, offset = 0) {
   // Note: Be careful editing this code!  It's been tuned for performance
   // and works in ways you may not expect. See https://github.com/uuidjs/uuid/pull/434
   return (
