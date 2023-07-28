@@ -3,19 +3,33 @@ import { RouteRequest } from "./RouteRequest.ts";
 import { Route, RouteAdd, RouteName } from "./Route.ts";
 import { ServerTiming } from "./ServerTiming.ts";
 import { Renderer } from "./Renderer.ts";
-import { APP_DATA, HTTP_CODE } from "../constants.ts";
+import { APP_DATA, ERROR, HTTP_CODE } from "../constants.ts";
+
+export type RouterOptions = {
+  /** Provide a Cache API for serving previously rendered responses. */
+  cache?: Cache;
+  /** Use the built-in static file resolution. Defaults to true. */
+  useStatic?: boolean;
+  /** Choose the behavior of route mismatches. Defaults to 404 Not Found. */
+  mismatch?:
+    | typeof HTTP_CODE.REDIRECT.TEMPORARY
+    | typeof HTTP_CODE.RESOURCE.NOT_FOUND
+    | typeof HTTP_CODE.SERVER.INTERNAL;
+};
 
 export class Router {
   #renderer = new Renderer();
   #routes: RouteMap = new Map();
   cache?: Cache;
   useStatic: boolean;
+  mismatch: Exclude<RouterOptions["mismatch"], undefined>;
 
   constructor(options?: RouterOptions) {
     this.cache = options?.cache;
     this.useStatic = typeof options?.useStatic === "boolean"
       ? options.useStatic
       : true;
+    this.mismatch = options?.mismatch ?? HTTP_CODE.RESOURCE.NOT_FOUND;
   }
 
   add({ pattern, render, useCache }: RouteAdd<`/${string}`, string>) {
@@ -59,10 +73,27 @@ export class Router {
         return response;
       }
 
-      return Response.redirect(
-        routeRequest.url.origin,
-        HTTP_CODE.REDIRECT.TEMPORARY,
-      );
+      switch (this.mismatch) {
+        case 307: {
+          return Response.redirect(
+            routeRequest.url.origin,
+            HTTP_CODE.REDIRECT.TEMPORARY,
+          );
+        }
+        case 500: {
+          return this.#renderer.json(
+            { error: ERROR.SERVER.INTERNAL },
+            { status: HTTP_CODE.SERVER.INTERNAL },
+          );
+        }
+        case 404:
+        default: {
+          return this.#renderer.json(
+            { error: ERROR.RESOURCE.NOT_FOUND },
+            { status: HTTP_CODE.RESOURCE.NOT_FOUND },
+          );
+        }
+      }
     };
   }
 
@@ -84,10 +115,6 @@ export class Router {
   }
 }
 
-export type RouterOptions = {
-  cache?: Cache;
-  useStatic?: boolean;
-};
 export type RouteMap = Map<
   RouteName<`/${string}`, string>,
   Route<`/${string}`, string>
