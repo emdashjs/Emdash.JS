@@ -1,11 +1,9 @@
-export { parse } from "https://deno.land/std@0.195.0/path/mod.ts";
-export { exists } from "https://deno.land/std@0.195.0/fs/exists.ts";
-export { lookup } from "https://deno.land/x/media_types@v3.0.3/mod.ts";
-export { CookieMap } from "https://deno.land/std@0.195.0/http/cookie_map.ts";
-export {
-  parse as parsePathToRegExp,
-  pathToRegexp,
-} from "https://deno.land/x/path_to_regexp@v6.2.1/index.ts";
+export * as Path from "https://deno.land/std@0.196.0/path/mod.ts";
+export * as Fs from "https://deno.land/std@0.196.0/fs/exists.ts";
+export * as Base64 from "https://deno.land/std@0.196.0/encoding/base64.ts";
+export * as MediaType from "https://deno.land/x/media_types@v3.0.3/mod.ts";
+export * as Path2RegExp from "https://deno.land/x/path_to_regexp@v6.2.1/index.ts";
+export { CookieMap } from "https://deno.land/std@0.196.0/http/cookie_map.ts";
 export {
   Component,
   h,

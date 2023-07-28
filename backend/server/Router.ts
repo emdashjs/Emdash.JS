@@ -1,4 +1,4 @@
-import { lookup } from "../../deps.ts";
+import { MediaType } from "../../deps.ts";
 import { RouteRequest } from "./RouteRequest.ts";
 import { Route, RouteAdd, RouteName } from "./Route.ts";
 import { ServerTiming } from "./ServerTiming.ts";
@@ -99,7 +99,7 @@ const STATIC_ROUTE = new Route("GET:/static/(.*)", async (request) => {
   let status: number;
   try {
     content = await Deno.readFile(path);
-    contentType = lookup(path) ?? "text/plain";
+    contentType = MediaType.lookup(path) ?? "text/plain";
     status = HTTP_CODE.RESOURCE.OK;
   } catch (_err) {
     content = "404: File not found.";

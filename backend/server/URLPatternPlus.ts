@@ -1,4 +1,4 @@
-import { parsePathToRegExp, pathToRegexp } from "../../deps.ts";
+import { Path2RegExp } from "../../deps.ts";
 
 const privates = new WeakMap<URLPatternPlus, URLSearchPattern>();
 const MOD = {
@@ -28,7 +28,7 @@ export class URLPatternPlus {
     const cleanPattern = this.#methodPattern === "*"
       ? "(.*)"
       : this.#methodPattern;
-    this.#methodRegExp = pathToRegexp(cleanPattern);
+    this.#methodRegExp = Path2RegExp.pathToRegexp(cleanPattern);
   }
 
   test(input: URLPatternPlusInput, baseURL?: string | undefined): boolean {
@@ -175,7 +175,7 @@ function isCleanInput(input: URLPatternInput): boolean {
 function parseURLSearch(search: string): URLSearchPattern {
   const skip = [" ", "?", "&"];
   const searchParams = new Map<string, URLSearchPatternParam>();
-  const tokens = parsePathToRegExp(search);
+  const tokens = Path2RegExp.parse(search);
   const { length } = tokens;
   let name = "";
   for (let i = 0; i < length; i++) {
