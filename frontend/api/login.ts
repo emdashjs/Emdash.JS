@@ -27,8 +27,10 @@ export const login = async function login(request) {
   const redirect = `${request.origin}${
     request.url.searchParams.get("landing") ?? ""
   }`;
-  const response = Response.redirect(redirect, HTTP_CODE.REDIRECT.SEE_OTHER);
   request.session = new Session(user);
   await request.session.createToken();
-  return response;
+  return new Response(null, {
+    status: HTTP_CODE.REDIRECT.SEE_OTHER,
+    headers: { Location: redirect },
+  });
 } as RouteRender;

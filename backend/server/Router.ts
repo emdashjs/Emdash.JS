@@ -81,14 +81,14 @@ export class Router {
           );
         }
         case 500: {
-          return this.#renderer.json(
+          return Response.json(
             { error: ERROR.SERVER.INTERNAL },
             { status: HTTP_CODE.SERVER.INTERNAL },
           );
         }
         case 404:
         default: {
-          return this.#renderer.json(
+          return Response.json(
             { error: ERROR.RESOURCE.NOT_FOUND },
             { status: HTTP_CODE.RESOURCE.NOT_FOUND },
           );
