@@ -44,11 +44,12 @@ export class Token extends KvRecord<RecordType> {
     }
     if (!this.token) {
       const buffer = new ArrayBuffer(256);
-      const signed = new SignedData(buffer);
-      signed.data.id = this.id;
-      signed.data.type = this.type;
-      signed.data.expires = dateToBytes(this.expires);
-      signed.signature = await Token.sign(signed.data.arrayBuffer());
+      const signed = new TokenData(buffer);
+      signed.payload.id = this.id;
+      signed.payload.type = this.type;
+      signed.payload.created = this.created;
+      signed.payload.expires = this.expires;
+      signed.signature = await Token.sign(signed.payload.arrayBuffer());
       this.token = Base64Url.encode(signed.arrayBuffer());
       await this.set();
     }
@@ -59,11 +60,12 @@ export class Token extends KvRecord<RecordType> {
 
   static fromToken(token: string) {
     const bytes = Base64Url.decode(token);
-    const data = new MetaData(bytes);
+    const data = new Payload(bytes);
     return new Token({
       id: data.id,
       type: data.type as RecordType,
-      expires: bytesToDate(data.expires),
+      created: data.created,
+      expires: data.expires,
       token,
     });
   }
@@ -99,58 +101,28 @@ export class Token extends KvRecord<RecordType> {
       Token.key = await importSessionKey();
     }
     const bytes = Base64Url.decode(token);
-    const signed = new SignedData(bytes);
+    const signed = new TokenData(bytes);
     return await crypto.subtle.verify(
       { name: "HMAC", hash: "SHA-512" },
       Token.key,
-      signed.data.arrayBuffer(),
+      signed.payload.arrayBuffer(),
       signed.signature,
     );
   }
 }
 
-const MetaData = StructJs.Struct("MetaData", {
+const Payload = StructJs.Struct("Payload", {
   id: StructJs.uuid,
-  expires: StructJs.bytearray(9),
   type: StructJs.string(20),
-  reserved: StructJs.random(108),
-  random: StructJs.random(39),
+  created: StructJs.date,
+  expires: StructJs.date,
+  reserved: StructJs.random(100),
+  random: StructJs.random(40),
 });
-const SignedData = StructJs.Struct("SignedData", {
-  data: MetaData,
+const TokenData = StructJs.Struct("TokenData", {
+  payload: Payload,
   signature: StructJs.bytearray(64),
 });
-
-function dateToBytes(date: Date): Uint8Array {
-  const bytes = new Uint8Array(9);
-  let part = date.getUTCFullYear();
-  bytes[0] = part & 0xFF;
-  bytes[1] = (part >> 8) & 0xFF;
-  bytes[2] = date.getUTCMonth();
-  bytes[3] = date.getUTCDate();
-  bytes[4] = date.getUTCHours();
-  bytes[5] = date.getUTCMinutes();
-  bytes[6] = date.getUTCSeconds();
-  part = date.getUTCMilliseconds();
-  bytes[7] = part & 0xFF;
-  bytes[8] = (part >> 8) & 0xFF;
-
-  return bytes;
-}
-
-function bytesToDate(bytes: Uint8Array): Date {
-  const date = new Date();
-
-  date.setUTCFullYear((bytes[0] & 0xFF) | ((bytes[1] & 0xFF) << 8));
-  date.setUTCMonth(bytes[2]);
-  date.setUTCDate(bytes[3]);
-  date.setUTCHours(bytes[4]);
-  date.setUTCMinutes(bytes[5]);
-  date.setUTCSeconds(bytes[6]);
-  date.setUTCMilliseconds((bytes[7] & 0xFF) | ((bytes[8] & 0xFF) << 8));
-
-  return date;
-}
 
 async function importSessionKey() {
   const encoder = new TextEncoder();

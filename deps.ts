@@ -4,7 +4,7 @@ export * as Base64 from "https://deno.land/std@0.196.0/encoding/base64.ts";
 export * as Base64Url from "https://deno.land/std@0.196.0/encoding/base64url.ts";
 export * as MediaType from "https://deno.land/x/media_types@v3.0.3/mod.ts";
 export * as Path2RegExp from "https://deno.land/x/path_to_regexp@v6.2.1/index.ts";
-export * as StructJs from "https://codeberg.org/aaronhuggins/struct.js/raw/tag/0.4.0/mod.ts";
+export * as StructJs from "https://codeberg.org/aaronhuggins/struct.js/raw/tag/0.5.0/mod.ts";
 export { CookieMap } from "https://deno.land/std@0.196.0/http/cookie_map.ts";
 export {
   Component,
