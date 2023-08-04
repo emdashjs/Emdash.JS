@@ -1,8 +1,14 @@
-import { Base64Url, StructJs } from "../../deps.ts";
+import { Base64Url, Member, Struct } from "../../deps.ts";
 import { APP_COLLECTION, APP_DATA } from "../constants.ts";
 import { KvRecord } from "../deno_kv/KvRecord.ts";
 
 type RecordType = typeof APP_COLLECTION.ACCESS | typeof APP_COLLECTION.SESSION;
+const TOKEN_TYPE = {
+  [APP_COLLECTION.ACCESS]: 0,
+  [APP_COLLECTION.SESSION]: 1,
+  0: APP_COLLECTION.ACCESS,
+  1: APP_COLLECTION.ACCESS,
+} as const;
 
 type TokenOptions = {
   // A UUID string representation.
@@ -13,6 +19,7 @@ type TokenOptions = {
   modified?: Date | string;
   token?: string;
   expires?: Date | string;
+  userId?: string;
 };
 
 export class Token extends KvRecord<RecordType> {
@@ -28,14 +35,17 @@ export class Token extends KvRecord<RecordType> {
       // deno-lint-ignore no-explicit-any
     } as any);
     this.token = options.token ?? "";
-    this.expires = options.expires ? new Date(options.expires) : new Date();
+    this.expires = options.expires
+      ? new Date(options.expires)
+      : new Date(Date.now() - 3);
   }
 
   get expired(): boolean {
     return Date.now() > this.expires.getTime();
   }
 
-  async createToken(ttl?: number): Promise<string> {
+  // deno-lint-ignore no-explicit-any
+  async createToken(payload?: Record<any, any>, ttl?: number): Promise<string> {
     await this.get();
     if (this.expired) {
       ttl = ttl ?? Token.ttl();
@@ -43,14 +53,14 @@ export class Token extends KvRecord<RecordType> {
       this.token = "";
     }
     if (!this.token) {
-      const buffer = new ArrayBuffer(256);
-      const signed = new TokenData(buffer);
-      signed.payload.id = this.id;
-      signed.payload.type = this.type;
-      signed.payload.created = this.created;
-      signed.payload.expires = this.expires;
-      signed.signature = await Token.sign(signed.payload.arrayBuffer());
-      this.token = Base64Url.encode(signed.arrayBuffer());
+      const signed = new TokenData();
+      signed.claim.id = this.id;
+      signed.claim.type = TOKEN_TYPE[this.type];
+      signed.claim.created = this.created;
+      signed.claim.expires = this.expires;
+      signed.claim.payload = payload ?? {};
+      signed.signature = await Token.sign(signed);
+      this.token = Base64Url.encode(signed.truncate());
       await this.set();
     }
     return this.token;
@@ -60,24 +70,24 @@ export class Token extends KvRecord<RecordType> {
 
   static fromToken(token: string) {
     const bytes = Base64Url.decode(token);
-    const data = new Payload(bytes);
+    const data = TokenData.fromTruncated(bytes);
     return new Token({
-      id: data.id,
-      type: data.type as RecordType,
-      created: data.created,
-      expires: data.expires,
+      id: data.claim.id,
+      type: TOKEN_TYPE[data.claim.type as 0 | 1],
+      created: data.claim.created,
+      expires: data.claim.expires,
       token,
     });
   }
 
-  static async sign(data: BufferSource): Promise<Uint8Array> {
+  static async sign(data: TokenData): Promise<Uint8Array> {
     if (!Token.key) {
       Token.key = await importSessionKey();
     }
     const signed = await crypto.subtle.sign(
       { name: "HMAC", hash: "SHA-512" },
       Token.key,
-      data,
+      data.claim.truncate(),
     );
     return new Uint8Array(signed);
   }
@@ -101,28 +111,32 @@ export class Token extends KvRecord<RecordType> {
       Token.key = await importSessionKey();
     }
     const bytes = Base64Url.decode(token);
-    const signed = new TokenData(bytes);
+    const signed = TokenData.fromTruncated(bytes);
     return await crypto.subtle.verify(
       { name: "HMAC", hash: "SHA-512" },
       Token.key,
-      signed.payload.arrayBuffer(),
+      signed.claim.truncate(),
       signed.signature,
     );
   }
 }
 
-const Payload = StructJs.Struct("Payload", {
-  id: StructJs.uuid,
-  type: StructJs.string(20),
-  created: StructJs.date,
-  expires: StructJs.date,
-  reserved: StructJs.random(100),
-  random: StructJs.random(40),
-});
-const TokenData = StructJs.Struct("TokenData", {
-  payload: Payload,
-  signature: StructJs.bytearray(64),
-});
+type ClaimData = Struct<typeof ClaimData>;
+const ClaimData = Struct("ClaimData", {
+  id: Member.uuid, // 0 - 15
+  type: Member.number("uint16"), // 16-17
+  version: Member.number("uint16"), // 18-19
+  created: Member.date, // 20-27
+  expires: Member.date, // 28-35
+  random: Member.random(92), // 36-127
+  payload: Member.json(320), // 128-447
+}); // Byte length: 448
+type TokenData = Struct<typeof TokenData>;
+const TokenData = Struct("TokenData", {
+  signature: Member.bytearray(64), // 0-63
+  claim: ClaimData, // 64-511
+}); // Byte length: 512
+// Token data can be truncated to as little as 192 bytes
 
 async function importSessionKey() {
   const encoder = new TextEncoder();
