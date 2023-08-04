@@ -2,18 +2,18 @@
 export type BasicKvRecord = Record<"id" | "type", string>;
 export type Mutable<
   T extends Record<string | number | symbol, any>,
-  E extends string | number | symbol,
+  E extends string | number | symbol = never,
 > = {
   -readonly [K in keyof Omit<T, E>]: T[K];
 };
-
-type PartialByKey<T, P extends keyof T> =
+export type PartialByKey<T, P extends keyof T> =
   & {
     [K in keyof Omit<T, P>]: T[K];
   }
   & {
     [K in keyof Pick<T, P>]?: T[K];
   };
+
 type OmitValue<T, V> = Pick<T, OmitKeysByValue<T, V>>;
 type OmitKeysByValue<T, V> = {
   [K in keyof T]: T[K] extends V ? never : K;

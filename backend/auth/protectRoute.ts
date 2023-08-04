@@ -1,22 +1,21 @@
 import { Renderer, RouteRender } from "../server/mod.ts";
 import { APP_DATA, ERROR, HTTP_CODE } from "../constants.ts";
 import { User } from "./User.ts";
-import { Session } from "./Session.ts";
+import { SessionToken } from "./SessionToken.ts";
 
 export function protectRoute(routeRender: RouteRender): RouteRender {
   return async (request) => {
     if (!(APP_DATA.FIRST_USER && await User.count() === 0)) {
       const clone = request.clone();
       const auth = getUserAuth(clone.headers.get("Authorization"));
-      const user = await User.get(auth.email ?? clone.session?.id ?? "@");
+      await request.session?.get();
+      const user = await User.get(auth.email ?? request.session?.userId ?? "@");
 
       if (user.internal.state === "enabled") {
         let authenticated = false;
         if (request.session) {
           try {
-            const result = await request.session.authenticate(
-              request.session.token,
-            );
+            const result = await request.session.authenticate(user);
             authenticated = User.is(result, user);
           } catch (error) {
             // Skip NOT_AUTHENTICATED to try a password authentication.
@@ -28,8 +27,8 @@ export function protectRoute(routeRender: RouteRender): RouteRender {
         if (!authenticated && auth.email && auth.password) {
           try {
             await user.authenticate(auth.password);
-            request.session = new Session(user);
-            await request.session.createToken();
+            request.session = new SessionToken();
+            await request.session.createToken(user);
             authenticated = true;
           } catch (error) {
             return unauthorizedResponse(clone.respondWith, error);

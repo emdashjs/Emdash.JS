@@ -1,4 +1,4 @@
-import { Session, User } from "../../backend/auth/mod.ts";
+import { SessionToken, User } from "../../backend/auth/mod.ts";
 import { ERROR, HTTP_CODE } from "../../backend/constants.ts";
 import { RouteRender } from "../../backend/server/mod.ts";
 
@@ -28,7 +28,7 @@ export const login = async function login(request) {
     request.url.searchParams.get("landing") ?? ""
   }`;
   const response = Response.redirect(redirect, HTTP_CODE.REDIRECT.SEE_OTHER);
-  request.session = new Session(user);
-  await request.session.createToken();
+  request.session = new SessionToken();
+  await request.session.createToken(user);
   return response;
 } as RouteRender;

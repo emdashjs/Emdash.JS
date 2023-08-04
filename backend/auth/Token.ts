@@ -1,6 +1,7 @@
 import { Base64Url, Member, Struct } from "../../deps.ts";
 import { APP_COLLECTION, APP_DATA } from "../constants.ts";
 import { KvRecord } from "../deno_kv/KvRecord.ts";
+import { count } from "../deno_kv/database.ts";
 
 type RecordType = typeof APP_COLLECTION.ACCESS | typeof APP_COLLECTION.SESSION;
 const TOKEN_TYPE = {
@@ -10,7 +11,7 @@ const TOKEN_TYPE = {
   1: APP_COLLECTION.ACCESS,
 } as const;
 
-type TokenOptions = {
+export type TokenOptions = {
   // A UUID string representation.
   id: string;
   // The token record type.
@@ -19,10 +20,9 @@ type TokenOptions = {
   modified?: Date | string;
   token?: string;
   expires?: Date | string;
-  userId?: string;
 };
 
-export class Token extends KvRecord<RecordType> {
+export class Token<T extends RecordType = RecordType> extends KvRecord<T> {
   internal: undefined;
   token: string;
   expires: Date;
@@ -68,9 +68,13 @@ export class Token extends KvRecord<RecordType> {
 
   static key?: CryptoKey;
 
+  static async count() {
+    return await count(APP_COLLECTION.ACCESS) +
+      await count(APP_COLLECTION.SESSION);
+  }
+
   static fromToken(token: string) {
-    const bytes = Base64Url.decode(token);
-    const data = TokenData.fromTruncated(bytes);
+    const data = Token.tokenData(token);
     return new Token({
       id: data.claim.id,
       type: TOKEN_TYPE[data.claim.type as 0 | 1],
@@ -92,6 +96,11 @@ export class Token extends KvRecord<RecordType> {
     return new Uint8Array(signed);
   }
 
+  static tokenData(token: string): TokenData {
+    const bytes = Base64Url.decode(token);
+    return TokenData.fromTruncated(bytes);
+  }
+
   static ttl(): number {
     let count = Number.parseFloat(APP_DATA.SESSION_TTL.replace(/m|h|d/gui, ""));
     let kind = APP_DATA.SESSION_TTL.replace(/\d/gui, "")
@@ -106,12 +115,10 @@ export class Token extends KvRecord<RecordType> {
     return TTL_KIND_MS[kind] * count;
   }
 
-  static async verify(token: string): Promise<boolean> {
+  static async verify(signed: TokenData): Promise<boolean> {
     if (!Token.key) {
       Token.key = await importSessionKey();
     }
-    const bytes = Base64Url.decode(token);
-    const signed = TokenData.fromTruncated(bytes);
     return await crypto.subtle.verify(
       { name: "HMAC", hash: "SHA-512" },
       Token.key,
