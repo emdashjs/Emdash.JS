@@ -24,6 +24,12 @@ export class Renderer {
     }
   }
 
+  request(): Request {
+    // deno-lint-ignore no-explicit-any
+    const { request } = this.context.request.originalRequest as any;
+    return request;
+  }
+
   json(
     // deno-lint-ignore no-explicit-any
     input: any,
@@ -99,6 +105,12 @@ export class Renderer {
     this.#setHeaders(options);
 
     return this.context.response;
+  }
+
+  static request(context: Context): Request {
+    // deno-lint-ignore no-explicit-any
+    const { request } = context.request.originalRequest as any;
+    return request;
   }
 }
 

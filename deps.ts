@@ -13,8 +13,11 @@ export { toHashString } from "https://deno.land/std@0.196.0/crypto/to_hash_strin
 export {
   Application,
   Context,
+  createHttpError,
+  REDIRECT_BACK,
   Router,
 } from "https://deno.land/x/oak@v12.6.0/mod.ts";
+export type { RouterContext } from "https://deno.land/x/oak@v12.6.0/mod.ts";
 export {
   Component,
   h,

@@ -90,6 +90,8 @@ export class SessionToken extends Token<RecordType> {
     return false;
   }
 
+  static COOKIE_NAME = "app_session" as const;
+
   static async count(): Promise<number> {
     return await count(RecordType);
   }
