@@ -16,5 +16,37 @@ export const routes: RouteAdd<`/${string}`, string>[] = [
       return request.respondWith.html(<App>Hello, world!</App>);
     },
   },
+  {
+    pattern: "GET:/login",
+    render: (request) => {
+      request.timing.start("Render");
+      return request.respondWith.html(() => (
+        <App>
+          <form action="/api/login?redirect=/" method="post">
+            <label for="email">
+              Username
+            </label>
+            <input
+              type="text"
+              placeholder="email@example.com"
+              name="email"
+              required
+            >
+            </input>
+            <label for="password">
+              Password
+            </label>
+            <input
+              type="password"
+              name="password"
+              required
+            >
+            </input>
+            <button type="submit">Login</button>
+          </form>
+        </App>
+      ));
+    },
+  },
   ...apiRoutes,
 ];
