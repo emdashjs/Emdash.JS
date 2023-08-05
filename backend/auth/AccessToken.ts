@@ -22,10 +22,10 @@ export class AccessToken extends Token<RecordType> {
     this.userId = typeof user === "string" ? User.id(user) : user.id;
   }
 
-  async authenticate(): Promise<User> {
+  async authenticate(token: string): Promise<User> {
     await this.get();
     const data = Token.tokenData(this.token);
-    if (!this.expired && await Token.verify(data)) {
+    if (!this.expired && this.token === token && await Token.verify(data)) {
       const user = await User.get(this.userId);
       const userId = User.id(data.claim.payload.userId);
       if (this.userId === userId && this.userId === user.id) {
