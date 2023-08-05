@@ -1,5 +1,5 @@
 import { CookieMap } from "../../deps.ts";
-import { Session } from "../auth/mod.ts";
+import { SessionToken } from "../auth/mod.ts";
 import { Renderer } from "./Renderer.ts";
 import { ServerTiming } from "./ServerTiming.ts";
 
@@ -8,7 +8,7 @@ export class RouteRequest implements Body {
   routeParams = new URLSearchParams();
   url: RouteURL;
   useCache: boolean;
-  session?: Session;
+  session?: SessionToken;
   #info: Deno.ServeHandlerInfo;
   #renderFunc: RouteRender;
   #cookieMap: CookieMap;
@@ -28,7 +28,7 @@ export class RouteRequest implements Body {
     this.useCache = true;
     this.#cookieMap = new CookieMap(request);
     this.#renderer = renderer;
-    this.session = Session.fromCookie(this.#cookieMap);
+    this.session = SessionToken.fromCookie(this.#cookieMap);
   }
 
   get cookies() {

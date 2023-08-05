@@ -1,4 +1,4 @@
-import { Session, User } from "../../backend/auth/mod.ts";
+import { SessionToken, User } from "../../backend/auth/mod.ts";
 import { ERROR, HTTP_CODE } from "../../backend/constants.ts";
 import { RouteRender } from "../../backend/server/mod.ts";
 
@@ -27,8 +27,8 @@ export const login = async function login(request) {
   const redirect = `${request.origin}${
     request.url.searchParams.get("landing") ?? ""
   }`;
-  request.session = new Session(user);
-  await request.session.createToken();
+  request.session = new SessionToken();
+  await request.session.createToken(user);
   return new Response(null, {
     status: HTTP_CODE.REDIRECT.SEE_OTHER,
     headers: { Location: redirect },

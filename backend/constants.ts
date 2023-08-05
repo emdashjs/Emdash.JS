@@ -1,10 +1,11 @@
 import { getStrengthOptions } from "./auth/isStrongPassword.ts";
 
 export const APP_COLLECTION = {
+  ACCESS: "access_token",
   COUNT: "count",
   NONE: "none",
   POST: "post",
-  SESSION: "session",
+  SESSION: "session_token",
   USER: "user",
 } as const;
 

@@ -38,9 +38,12 @@ export abstract class KvRecord<T extends KvCollection = "none">
     return this.#hydrated;
   }
 
-  async get(): Promise<boolean> {
+  async get(keyOver?: string[]): Promise<boolean> {
     const kv = await database();
-    const result = await kv.get<KvRecord<T>>([this.type, this.id]);
+    const key = keyOver && keyOver.length > 0
+      ? [this.type, ...keyOver]
+      : [this.type, this.id];
+    const result = await kv.get<KvRecord<T>>(key);
     if (result.value !== null) {
       Object.assign(this, result.value);
       this.#hydrated = true;
@@ -49,9 +52,11 @@ export abstract class KvRecord<T extends KvCollection = "none">
     return false;
   }
 
-  async set(): Promise<boolean> {
+  async set(keyOver?: string[]): Promise<boolean> {
     const kv = await database();
-    const key = [this.type, this.id];
+    const key = keyOver && keyOver.length > 0
+      ? [this.type, ...keyOver]
+      : [this.type, this.id];
     this.modified = new Date();
     const atomic = kv.atomic();
     await atomic
@@ -59,13 +64,15 @@ export abstract class KvRecord<T extends KvCollection = "none">
       // Increment counter if not exist
       .sum([APP_COLLECTION.COUNT, this.type], 1n)
       .commit();
-    const result = await kv.set([this.type, this.id], this);
+    const result = await kv.set(key, this);
     return result.ok ?? false;
   }
 
-  async delete(): Promise<boolean> {
+  async delete(keyOver?: string[]): Promise<boolean> {
     const kv = await database();
-    const key = [this.type, this.id];
+    const key = keyOver && keyOver.length > 0
+      ? [this.type, ...keyOver]
+      : [this.type, this.id];
     const result = await kv.get<KvRecord<T>>(key);
     // Delete and decrement counter if exist
     if (result.versionstamp) {
