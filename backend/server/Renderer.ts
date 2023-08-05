@@ -1,10 +1,9 @@
-import { createXMLRenderer, Helmet, renderSSR } from "../../deps.ts";
+import { Context, createXMLRenderer, Helmet, renderSSR } from "../../deps.ts";
 
 export type RenderOptions = {
   status?: number;
   contentType?: string;
   cacheControl?: string;
-  headers?: HeadersInit;
 };
 
 export type ResponseLike = {
@@ -14,14 +13,14 @@ export type ResponseLike = {
 };
 
 export class Renderer {
-  #xmlSsr = createXMLRenderer(renderSSR);
+  context: Context;
+  constructor(context: Context) {
+    this.context = context;
+  }
 
-  #setHeaders(headers: Headers, options?: RenderOptions): void {
-    if (options?.contentType) {
-      headers.set("Content-Type", options.contentType);
-    }
+  #setHeaders(options?: RenderOptions): void {
     if (options?.cacheControl) {
-      headers.set("Cache-Control", options.cacheControl);
+      this.context.response.headers.set("Cache-Control", options.cacheControl);
     }
   }
 
@@ -29,40 +28,31 @@ export class Renderer {
     // deno-lint-ignore no-explicit-any
     input: any,
     options?: RenderOptions,
-  ): ResponseLike {
-    const response: ResponseLike = {
-      body: "",
-      headers: new Headers(options?.headers),
-      status: options?.status ?? 200,
-    };
+  ) {
+    this.context.response.status = options?.status ?? 200;
+    this.context.response.type = options?.contentType ?? "application/json";
     if (typeof input === "string" || isBufferSource(input)) {
-      response.body = input;
+      this.context.response.body = input;
     } else {
-      response.body = JSON.stringify(input);
+      this.context.response.body = JSON.stringify(input);
     }
-    this.#setHeaders(response.headers, {
-      contentType: "application/json",
-      ...options,
-    });
-    return response;
+    this.#setHeaders(options);
+    return this.context.response;
   }
 
   html(
     // deno-lint-ignore no-explicit-any
     input: any,
     options?: RenderOptions,
-  ): ResponseLike {
-    const response: ResponseLike = {
-      body: "",
-      headers: new Headers(options?.headers),
-      status: options?.status ?? 200,
-    };
+  ) {
+    this.context.response.status = options?.status ?? 200;
+    this.context.response.type = options?.contentType ?? "text/html";
     if (typeof input === "string" || isBufferSource(input)) {
-      response.body = input;
+      this.context.response.body = input;
     } else {
       const app = renderSSR(input);
       const { body, head, footer, attributes } = Helmet.SSR(app);
-      response.body = `
+      this.context.response.body = `
       <!DOCTYPE html>
       <html ${attributes.html.toString()}>
         <head>${head.join("\n")}</head>
@@ -71,22 +61,19 @@ export class Renderer {
       }>${body.trim()}${footer.join("\n")}</body>
       </html>`;
     }
-    this.#setHeaders(response.headers, {
-      contentType: "text/html",
-      ...options,
-    });
+    this.#setHeaders(options);
 
-    return response;
+    return this.context.response;
   }
 
   rss(
     // deno-lint-ignore no-explicit-any
     input: any,
     options: RenderOptions,
-  ): ResponseLike {
+  ) {
     return this.xml(input, {
-      ...options,
       contentType: "application/rss+xml",
+      ...options,
     });
   }
 
@@ -94,32 +81,29 @@ export class Renderer {
     // deno-lint-ignore no-explicit-any
     input: any,
     options: RenderOptions,
-  ): ResponseLike {
-    const xmlDirective = '<?xml version="1.0" encoding="utf-8"?>';
-    let xml: string | BufferSource;
+  ) {
+    this.context.response.status = options?.status ?? 200;
+    this.context.response.type = options?.contentType ?? "application/xml";
     if (typeof input === "string") {
       if (input.startsWith(xmlDirective)) {
-        xml = input;
+        this.context.response.body = input;
       } else {
-        xml = xmlDirective + input;
+        this.context.response.body = xmlDirective + input;
       }
     } else if (isBufferSource(input)) {
-      xml = input;
+      this.context.response.body = input;
     } else {
-      xml = xmlDirective + this.#xmlSsr(input);
+      this.context.response.body = xmlDirective + xmlSsr(input);
     }
 
-    const response = new Response(xml, {
-      status: options?.status,
-    });
-    this.#setHeaders(response, {
-      contentType: "application/xml",
-      ...options,
-    });
+    this.#setHeaders(options);
 
-    return response;
+    return this.context.response;
   }
 }
+
+const xmlDirective = '<?xml version="1.0" encoding="utf-8"?>';
+const xmlSsr = createXMLRenderer(renderSSR);
 
 // deno-lint-ignore no-explicit-any
 function isBufferSource(source: any): source is BufferSource {
