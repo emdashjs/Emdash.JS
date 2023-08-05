@@ -4,17 +4,24 @@ export type RenderOptions = {
   status?: number;
   contentType?: string;
   cacheControl?: string;
+  headers?: HeadersInit;
+};
+
+export type ResponseLike = {
+  body: BodyInit;
+  headers: Headers;
+  status: number;
 };
 
 export class Renderer {
   #xmlSsr = createXMLRenderer(renderSSR);
 
-  #setHeaders(response: Response, options?: RenderOptions): void {
+  #setHeaders(headers: Headers, options?: RenderOptions): void {
     if (options?.contentType) {
-      response.headers.set("Content-Type", options.contentType);
+      headers.set("Content-Type", options.contentType);
     }
     if (options?.cacheControl) {
-      response.headers.set("Cache-Control", options.cacheControl);
+      headers.set("Cache-Control", options.cacheControl);
     }
   }
 
@@ -22,22 +29,21 @@ export class Renderer {
     // deno-lint-ignore no-explicit-any
     input: any,
     options?: RenderOptions,
-  ): Response {
-    let response: Response;
+  ): ResponseLike {
+    const response: ResponseLike = {
+      body: "",
+      headers: new Headers(options?.headers),
+      status: options?.status ?? 200,
+    };
     if (typeof input === "string" || isBufferSource(input)) {
-      response = new Response(input, {
-        status: options?.status,
-      });
-      this.#setHeaders(response, {
-        contentType: "application/json",
-        ...options,
-      });
+      response.body = input;
     } else {
-      response = Response.json(input, {
-        status: options?.status,
-      });
-      this.#setHeaders(response, options);
+      response.body = JSON.stringify(input);
     }
+    this.#setHeaders(response.headers, {
+      contentType: "application/json",
+      ...options,
+    });
     return response;
   }
 
@@ -45,14 +51,18 @@ export class Renderer {
     // deno-lint-ignore no-explicit-any
     input: any,
     options?: RenderOptions,
-  ): Response {
-    let html: string | BufferSource;
+  ): ResponseLike {
+    const response: ResponseLike = {
+      body: "",
+      headers: new Headers(options?.headers),
+      status: options?.status ?? 200,
+    };
     if (typeof input === "string" || isBufferSource(input)) {
-      html = input;
+      response.body = input;
     } else {
       const app = renderSSR(input);
       const { body, head, footer, attributes } = Helmet.SSR(app);
-      html = `
+      response.body = `
       <!DOCTYPE html>
       <html ${attributes.html.toString()}>
         <head>${head.join("\n")}</head>
@@ -61,10 +71,7 @@ export class Renderer {
       }>${body.trim()}${footer.join("\n")}</body>
       </html>`;
     }
-    const response = new Response(html, {
-      status: options?.status,
-    });
-    this.#setHeaders(response, {
+    this.#setHeaders(response.headers, {
       contentType: "text/html",
       ...options,
     });
@@ -76,7 +83,7 @@ export class Renderer {
     // deno-lint-ignore no-explicit-any
     input: any,
     options: RenderOptions,
-  ): Response {
+  ): ResponseLike {
     return this.xml(input, {
       ...options,
       contentType: "application/rss+xml",
@@ -87,7 +94,7 @@ export class Renderer {
     // deno-lint-ignore no-explicit-any
     input: any,
     options: RenderOptions,
-  ): Response {
+  ): ResponseLike {
     const xmlDirective = '<?xml version="1.0" encoding="utf-8"?>';
     let xml: string | BufferSource;
     if (typeof input === "string") {

@@ -10,6 +10,7 @@ export {
 } from "https://codeberg.org/aaronhuggins/struct.js/raw/tag/0.8.0/mod.ts";
 export { CookieMap } from "https://deno.land/std@0.196.0/http/cookie_map.ts";
 export { toHashString } from "https://deno.land/std@0.196.0/crypto/to_hash_string.ts";
+export { Application, Router } from "https://deno.land/x/oak@v12.6.0/mod.ts";
 export {
   Component,
   h,
