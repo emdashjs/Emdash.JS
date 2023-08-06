@@ -1,5 +1,5 @@
 /// <reference lib="deno.unstable" />
-import { APP_COLLECTION, APP_DATA } from "../constants.ts";
+import { APP_COLLECTION, APP_DATA, IS_DENO_DEPLOY } from "../constants.ts";
 
 let mutex: Promise<Deno.Kv> | undefined;
 let kv: Deno.Kv | undefined;
@@ -20,6 +20,9 @@ export async function database() {
       appDataFolder = appDataFolder.endsWith("/")
         ? appDataFolder
         : appDataFolder + "/";
+    }
+    if (IS_DENO_DEPLOY) {
+      return kv = await Deno.openKv();
     }
     return kv = await Deno.openKv(`${appDataFolder}${APP_DATA.NAME}.db`);
   }

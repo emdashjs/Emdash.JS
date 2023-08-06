@@ -1,5 +1,7 @@
 import { getStrengthOptions } from "./auth/isStrongPassword.ts";
 
+export const IS_DENO_DEPLOY = Deno.env.get("DENO_DEPLOYMENT_ID") !== undefined;
+
 export const APP_COLLECTION = {
   ACCESS: "access_token",
   COUNT: "count",
