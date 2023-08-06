@@ -16,11 +16,14 @@ import { ServerTiming } from "./ServerTiming.ts";
 
 export type ServerOptions = {
   cache?: Cache;
+  useCache?: boolean;
+  useStatic?: boolean;
 } & Deno.ServeOptions;
 export class Server {
   cache: Cache;
   app: Application<ContextState>;
   router: MainRouter<ContextState>;
+  #options: ServerOptions;
   #routes: Set<Router<ContextState>>;
   #serveOptions: RequiredByKey<Deno.ServeOptions, "hostname" | "port">;
   #noCache: string[];
@@ -34,6 +37,12 @@ export class Server {
       contextState: "empty",
       state: {} as ContextState,
     });
+    this.#options = {
+      ...options,
+      useCache: typeof options?.cache === "object" ||
+        (options?.useCache ?? true),
+      useStatic: options?.useStatic ?? true,
+    };
     this.#serveOptions = {
       hostname: options?.hostname ?? "127.0.0.1",
       onError: options?.onError,
@@ -104,10 +113,14 @@ export class Server {
   }
 
   serve() {
-    this.router.get("/static/(.*)", this.#useStatic);
+    if (this.#options.useStatic) {
+      this.router.get("/static/(.*)", this.#useStatic);
+    }
     this.router.merge([...this.#routes]);
     this.app.use(ContextState.create);
-    this.app.use(this.#useCache);
+    if (this.#options.useCache) {
+      this.app.use(this.#useCache);
+    }
     this.app.use(this.router.routes());
     this.app.use(this.router.allowedMethods());
     return Deno.serve(this.#serveOptions, this.#handle);
