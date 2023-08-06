@@ -17,10 +17,11 @@ export class ContextState {
   // deno-lint-ignore no-explicit-any
   constructor(context: Context<any>) {
     this.#context = context;
+    this.request = getRequest(this.#context);
+    this.timing = ServerTiming.get(this.request);
     this.auth = getAuth(this.#context.request.headers.get("Authorization"));
     this.request = getRequest(this.#context);
     this.render = new Renderer(this.#context);
-    this.timing = ServerTiming.get(this.request);
   }
 
   async init() {

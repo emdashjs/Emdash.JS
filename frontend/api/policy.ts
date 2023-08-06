@@ -1,9 +1,7 @@
 import { PasswordPolicy } from "../../backend/auth/mod.ts";
 import { APP_DATA } from "../../backend/constants.ts";
-import { Renderer } from "../../backend/server/mod.ts";
-import { Context } from "../../deps.ts";
+import { Server } from "../../backend/server/mod.ts";
 
-export function getPolicyPassword(context: Context) {
-  const render = new Renderer(context);
-  render.json(new PasswordPolicy(APP_DATA.PASSWORD_RULES));
-}
+export const getPolicyPassword = Server.middleware((context) => {
+  context.state.render.json(new PasswordPolicy(APP_DATA.PASSWORD_RULES));
+});

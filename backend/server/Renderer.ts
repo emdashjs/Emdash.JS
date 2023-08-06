@@ -1,4 +1,5 @@
 import { Context, createXMLRenderer, Helmet, renderSSR } from "../../deps.ts";
+import { ContextState } from "./ContextState.ts";
 
 export type RenderOptions = {
   status?: number;
@@ -13,8 +14,8 @@ export type ResponseLike = {
 };
 
 export class Renderer {
-  context: Context;
-  constructor(context: Context) {
+  context: Context<ContextState>;
+  constructor(context: Context<ContextState>) {
     this.context = context;
   }
 

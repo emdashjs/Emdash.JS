@@ -1,40 +1,28 @@
 import { SessionToken, User } from "../../backend/auth/mod.ts";
-import { ERROR, HTTP_CODE } from "../../backend/constants.ts";
-import { Renderer } from "../../backend/server/mod.ts";
-import { Context, REDIRECT_BACK } from "../../deps.ts";
+import { Server } from "../../backend/server/mod.ts";
+import { HTTP_CODE } from "../../mod.ts";
 
-export async function login(context: Context) {
-  const render = new Renderer(context);
-  const request = render.request();
-  const body = await request.formData();
+export const login = Server.middleware(async (context) => {
+  const body = await context.state.request.formData();
   const email = body.get("email") as string;
   const password = body.get("password") as string;
   const user = await User.get(email);
   try {
     await user.authenticate(password);
-  } catch (error) {
-    render.json(
-      { error: `${error?.message}` },
-      {
-        status: error?.message === ERROR.AUTH.NOT_AUTHENTICATED
-          ? HTTP_CODE.AUTH.NOT_AUTHENTICATED
-          : HTTP_CODE.SERVER.INTERNAL,
-      },
-    );
-    context.response.headers.set(
-      "WWW-Authenticate",
-      'Basic realm="User Visible Realm", charset="UTF-8"',
+  } catch (_error) {
+    context.response.status = HTTP_CODE.REDIRECT.SEE_OTHER;
+    context.response.redirect(
+      Server.REDIRECT_BACK,
+      `${context.request.url.origin}/login`,
     );
     return;
   }
-  if (context.request.url.searchParams.has("landing")) {
-    const redirect = `${context.request.url.origin}${
-      context.request.url.searchParams.get("landing") ?? ""
-    }`;
-    context.response.redirect(redirect);
-  } else {
-    context.response.redirect(REDIRECT_BACK, context.request.url.origin);
-  }
+  const redirect = `${context.request.url.origin}${
+    context.request.url.searchParams.get("landing") ?? ""
+  }`;
   context.state.session = new SessionToken();
-  await context.state.session.createToken(user);
-}
+  const token = await context.state.session.createToken(user);
+  await context.cookies.set(SessionToken.COOKIE_NAME, token);
+  context.response.status = HTTP_CODE.REDIRECT.SEE_OTHER;
+  context.response.redirect(redirect);
+});

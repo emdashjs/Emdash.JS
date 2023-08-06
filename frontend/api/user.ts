@@ -1,12 +1,9 @@
 import { createHttpError } from "https://deno.land/std@0.193.0/http/http_errors.ts";
 import { User, USER_BUILTIN, UserJson } from "../../backend/auth/mod.ts";
-import { ContextState } from "../../backend/server/ContextState.ts";
-import { RouterContext } from "../../deps.ts";
-import { ERROR, HTTP_CODE } from "../../mod.ts";
+import { ERROR, HTTP_CODE } from "../../backend/constants.ts";
+import { Server } from "../../backend/server/mod.ts";
 
-export async function getUser(
-  context: RouterContext<"/user/:id?", { id?: string }, ContextState>,
-) {
+export const getUser = Server.middleware(async (context) => {
   await context.state.authenticate();
   const id = context.params.id || context.request.url.searchParams.get("id") ||
     undefined;
@@ -23,11 +20,9 @@ export async function getUser(
     HTTP_CODE.RESOURCE.NOT_FOUND,
     `user id ${id} does not exist.`,
   );
-}
+});
 
-export async function postUser(
-  context: RouterContext<"/user/:id?", { id?: string }, ContextState>,
-) {
+export const postUser = Server.middleware(async (context) => {
   await context.state.authenticate();
   // deno-lint-ignore no-explicit-any
   function assignUser(user1: User, user2: any) {
@@ -84,4 +79,4 @@ export async function postUser(
     await user.set();
     context.state.render.json(user);
   }
-}
+});

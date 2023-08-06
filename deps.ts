@@ -17,7 +17,10 @@ export {
   REDIRECT_BACK,
   Router,
 } from "https://deno.land/x/oak@v12.6.0/mod.ts";
-export type { RouterContext } from "https://deno.land/x/oak@v12.6.0/mod.ts";
+export type {
+  RouteParams,
+  RouterContext,
+} from "https://deno.land/x/oak@v12.6.0/mod.ts";
 export {
   Component,
   h,
