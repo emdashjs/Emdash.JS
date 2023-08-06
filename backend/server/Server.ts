@@ -88,6 +88,12 @@ export class Server {
       context.response.headers = response.headers;
       context.response.status = response.status;
       await context.cookies.delete(SessionToken.COOKIE_NAME);
+      if (context.state.session) {
+        await context.cookies.set(
+          SessionToken.COOKIE_NAME,
+          context.state.session.token,
+        );
+      }
       cacheMeasure.finish();
     } else {
       cacheMeasure.finish();
