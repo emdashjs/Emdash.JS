@@ -3,21 +3,35 @@
  * implementation based on URL keys only.
  */
 export class MemoryCache {
-  #store = new Map<string, [Request, Response]>();
+  #store = new Map<string, [RequestData, Response]>();
   #isUrl(input: URL | RequestInfo): input is URL | string {
     return typeof input === "string" || "href" in input;
+  }
+  #toRequestData(input: URL | RequestInfo): RequestData {
+    if (this.#isUrl(input)) {
+      return {
+        method: "GET",
+        url: input.toString(),
+      };
+    }
+    return {
+      method: input.method,
+      url: input.url,
+    };
+  }
+  #fromRequestData(data: RequestData): Request {
+    return new Request(data.url, { method: data.method });
   }
   #createRequest(input: URL | RequestInfo): Request {
     return this.#isUrl(input) ? new Request(input) : input;
   }
-  #createKey(input: URL | RequestInfo): string {
-    const request = this.#createRequest(input);
-    const key = `${request.method}${request.url}`;
+  #createKey(data: RequestData): string {
+    const key = `${data.method}${data.url}`;
     return key;
   }
   #matchRequests(
-    req1: Request,
-    req2: Request,
+    req1: RequestData,
+    req2: RequestData,
     options?: CacheQueryOptions,
   ): boolean {
     const url1 = new URL(req1.url);
@@ -35,7 +49,7 @@ export class MemoryCache {
     input?: URL | RequestInfo,
     options?: CacheQueryOptions | undefined,
   ) {
-    const request = input ? this.#createRequest(input) : undefined;
+    const request = input ? this.#toRequestData(input) : undefined;
     for (const value of this.#store.values()) {
       if (!request || this.#matchRequests(request, value[0], options)) {
         yield value;
@@ -48,7 +62,10 @@ export class MemoryCache {
     if (!response.ok) {
       throw new TypeError("bad response status");
     }
-    this.#store.set(this.#createKey(request), [request, response]);
+    this.#store.set(this.#createKey(request), [
+      this.#toRequestData(request),
+      response,
+    ]);
   }
   async addAll(requests: RequestInfo[]): Promise<void> {
     await Promise.all(requests.map((request) => this.add(request)));
@@ -58,7 +75,7 @@ export class MemoryCache {
     options?: CacheQueryOptions | undefined,
   ): Promise<boolean> {
     return new Promise<boolean>((resolve) => {
-      const request = this.#createRequest(input);
+      const request = this.#toRequestData(input);
       if (options && Object.keys(options).length > 0) {
         let isDeleted = false;
         for (const [req] of this.#entries(input, options)) {
@@ -81,7 +98,7 @@ export class MemoryCache {
     return new Promise<readonly Request[]>((resolve) => {
       const results: Request[] = [];
       for (const [req] of this.#entries(input, options)) {
-        results.push(req);
+        results.push(this.#fromRequestData(req));
       }
       return resolve(Object.freeze(results));
     });
@@ -98,7 +115,8 @@ export class MemoryCache {
         }
         resolve(undefined);
       } else {
-        const key = this.#createKey(input);
+        const data = this.#toRequestData(input);
+        const key = this.#createKey(data);
         resolve(this.#store.get(key)?.[1]);
       }
     });
@@ -117,9 +135,9 @@ export class MemoryCache {
   }
   put(input: URL | RequestInfo, response: Response): Promise<void> {
     return new Promise<void>((resolve) => {
-      const request = this.#createRequest(input);
-      const key = this.#createKey(request);
-      this.#store.set(key, [request, response]);
+      const data = this.#toRequestData(input);
+      const key = this.#createKey(data);
+      this.#store.set(key, [data, response]);
       resolve();
     });
   }
@@ -158,3 +176,8 @@ export class MemoryCacheStorage {
 }
 
 export const caches = new MemoryCacheStorage();
+
+type RequestData = {
+  method: string;
+  url: string;
+};
