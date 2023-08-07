@@ -4,7 +4,7 @@ import { BasicKvRecord, JsonLike } from "../deno_kv/types.ts";
 import { uuidv5 } from "./uuidv5.ts";
 import { count, database } from "../deno_kv/database.ts";
 import { isStrongPassword } from "./isStrongPassword.ts";
-import { toHashString } from "../../deps.ts";
+import { BcryptAes } from "./BcryptAes.ts";
 
 type RecordType = typeof APP_COLLECTION.USER;
 const RecordType = APP_COLLECTION.USER;
@@ -22,8 +22,7 @@ export class User extends KvRecord<RecordType> {
   first_name: string;
   last_name: string;
   internal: {
-    passwordHash: string;
-    passwordSalt: string;
+    hash: string;
     roles: string[];
     state: "enabled" | "disabled";
   };
@@ -39,17 +38,14 @@ export class User extends KvRecord<RecordType> {
     this.first_name = record?.first_name ?? "";
     this.last_name = record?.last_name ?? "";
     this.internal = {
-      passwordHash: "",
-      passwordSalt: "",
+      hash: "",
       roles: [],
       state: "disabled",
     };
     if (record && "internal" in record) {
       this.internal = {
-        passwordHash: record?.internal?.passwordHash ??
-          this.internal.passwordHash,
-        passwordSalt: record?.internal?.passwordSalt ??
-          this.internal.passwordSalt,
+        hash: record?.internal?.hash ??
+          this.internal.hash,
         roles: record?.internal?.roles ?? this.internal.roles,
         state: record?.internal?.state ?? this.internal.state,
       };
@@ -64,8 +60,7 @@ export class User extends KvRecord<RecordType> {
     if (!this.hydrated && !(await this.get())) {
       throw new Error(ERROR.AUTH.NOT_AUTHENTICATED);
     }
-    const hash = await this.getHash(password);
-    if (this.internal.passwordHash !== hash) {
+    if (!await bcryptAes.verify(password, this.internal.hash)) {
       throw new Error(ERROR.AUTH.NOT_AUTHENTICATED);
     }
     return this;
@@ -75,21 +70,9 @@ export class User extends KvRecord<RecordType> {
     if (!isStrongPassword(password, APP_DATA.PASSWORD_RULES)) {
       throw new Error(ERROR.AUTH.PASSWORD_STRENGTH);
     }
-    this.internal.passwordSalt = Array.from(
-      crypto.getRandomValues(new Uint8Array(512)),
-      (byte) => String.fromCharCode(byte),
-    ).join("");
-    this.internal.passwordHash = await this.getHash(password);
+    this.internal.hash = await bcryptAes.hash(password);
     await this.set();
     return this;
-  }
-
-  async getHash(password: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const pre = this.internal.passwordSalt.slice(0, 256);
-    const post = this.internal.passwordSalt.slice(256);
-    const salted = encoder.encode(pre + password + post);
-    return toHashString(await crypto.subtle.digest("SHA-512", salted));
   }
 
   toPublic() {
@@ -141,6 +124,8 @@ export class User extends KvRecord<RecordType> {
     return record.type === RecordType;
   }
 }
+
+const bcryptAes = new BcryptAes(APP_DATA.SESSION_KEY || APP_DATA.UUID);
 
 export const USER_BUILTIN = {
   NOT_EXIST: new User({
