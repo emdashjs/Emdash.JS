@@ -14,20 +14,20 @@ export type ResponseLike = {
 };
 
 export class Renderer {
-  context: Context<ContextState>;
+  #context: Context<ContextState>;
   constructor(context: Context<ContextState>) {
-    this.context = context;
+    this.#context = context;
   }
 
   #setHeaders(options?: RenderOptions): void {
     if (options?.cacheControl) {
-      this.context.response.headers.set("Cache-Control", options.cacheControl);
+      this.#context.response.headers.set("Cache-Control", options.cacheControl);
     }
   }
 
   request(): Request {
     // deno-lint-ignore no-explicit-any
-    const { request } = this.context.request.originalRequest as any;
+    const { request } = this.#context.request.originalRequest as any;
     return request;
   }
 
@@ -36,15 +36,15 @@ export class Renderer {
     input: any,
     options?: RenderOptions,
   ) {
-    this.context.response.status = options?.status ?? 200;
-    this.context.response.type = options?.contentType ?? "application/json";
+    this.#context.response.status = options?.status ?? 200;
+    this.#context.response.type = options?.contentType ?? "application/json";
     if (typeof input === "string" || isBufferSource(input)) {
-      this.context.response.body = input;
+      this.#context.response.body = input;
     } else {
-      this.context.response.body = JSON.stringify(input);
+      this.#context.response.body = JSON.stringify(input);
     }
     this.#setHeaders(options);
-    return this.context.response;
+    return this.#context.response;
   }
 
   html(
@@ -52,14 +52,14 @@ export class Renderer {
     input: any,
     options?: RenderOptions,
   ) {
-    this.context.response.status = options?.status ?? 200;
-    this.context.response.type = options?.contentType ?? "text/html";
+    this.#context.response.status = options?.status ?? 200;
+    this.#context.response.type = options?.contentType ?? "text/html";
     if (typeof input === "string" || isBufferSource(input)) {
-      this.context.response.body = input;
+      this.#context.response.body = input;
     } else {
       const app = renderSSR(input);
       const { body, head, footer, attributes } = Helmet.SSR(app);
-      this.context.response.body = `
+      this.#context.response.body = `
       <!DOCTYPE html>
       <html ${attributes.html.toString()}>
         <head>${head.join("\n")}</head>
@@ -70,7 +70,7 @@ export class Renderer {
     }
     this.#setHeaders(options);
 
-    return this.context.response;
+    return this.#context.response;
   }
 
   rss(
@@ -89,23 +89,23 @@ export class Renderer {
     input: any,
     options: RenderOptions,
   ) {
-    this.context.response.status = options?.status ?? 200;
-    this.context.response.type = options?.contentType ?? "application/xml";
+    this.#context.response.status = options?.status ?? 200;
+    this.#context.response.type = options?.contentType ?? "application/xml";
     if (typeof input === "string") {
       if (input.startsWith(xmlDirective)) {
-        this.context.response.body = input;
+        this.#context.response.body = input;
       } else {
-        this.context.response.body = xmlDirective + input;
+        this.#context.response.body = xmlDirective + input;
       }
     } else if (isBufferSource(input)) {
-      this.context.response.body = input;
+      this.#context.response.body = input;
     } else {
-      this.context.response.body = xmlDirective + xmlSsr(input);
+      this.#context.response.body = xmlDirective + xmlSsr(input);
     }
 
     this.#setHeaders(options);
 
-    return this.context.response;
+    return this.#context.response;
   }
 
   static request(context: Context): Request {
