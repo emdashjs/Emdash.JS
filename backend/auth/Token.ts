@@ -122,8 +122,8 @@ export class Token<T extends RecordType = RecordType> extends KvRecord<T> {
     return await crypto.subtle.verify(
       { name: "HMAC", hash: "SHA-512" },
       Token.key,
-      signed.claim.truncate(),
       signed.signature,
+      signed.claim.truncate(),
     );
   }
 }
