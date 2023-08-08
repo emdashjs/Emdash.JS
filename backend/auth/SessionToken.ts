@@ -109,6 +109,7 @@ export class SessionToken extends Token<RecordType> {
       id: data.claim.id,
       created: data.claim.created,
       expires: data.claim.expires,
+      userId: data.claim.payload?.id,
       token,
     });
   }
