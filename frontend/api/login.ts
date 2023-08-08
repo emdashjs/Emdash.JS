@@ -26,3 +26,10 @@ export const login = Server.middleware(async (context) => {
   context.response.status = HTTP_CODE.REDIRECT.SEE_OTHER;
   context.response.redirect(redirect);
 });
+
+export const logout = Server.middleware(async (context) => {
+  await context.state.session?.delete();
+  await context.cookies.set(SessionToken.COOKIE_NAME, "");
+  context.response.status = HTTP_CODE.REDIRECT.SEE_OTHER;
+  context.response.redirect(context.request.url.origin);
+});
