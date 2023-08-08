@@ -31,5 +31,5 @@ export const logout = Server.middleware(async (context) => {
   await context.state.session?.delete();
   await context.cookies.set(SessionToken.COOKIE_NAME, "");
   context.response.status = HTTP_CODE.REDIRECT.SEE_OTHER;
-  context.response.redirect(Server.REDIRECT_BACK, context.request.url.origin);
+  context.response.redirect(context.request.url.origin);
 });
