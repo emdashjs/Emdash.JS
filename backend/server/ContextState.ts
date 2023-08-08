@@ -26,7 +26,7 @@ export class ContextState {
 
   async init() {
     this.session = await getSession(this.#context);
-    this.user = await getUser(this.auth);
+    this.user = await getUser(this.auth ?? this.session);
     return this;
   }
 
@@ -136,11 +136,13 @@ async function getSession(context: Context) {
   }
 }
 
-async function getUser(auth?: Auth) {
+async function getUser(auth?: Auth | SessionToken) {
   if (auth) {
     const userId = auth.type === "Bearer"
       ? auth.bearer.userId
-      : User.id(auth.email);
+      : auth.type === "Basic"
+      ? User.id(auth.email)
+      : auth.userId;
     const user = await User.get(userId);
     if (!User.is(user, USER_BUILTIN.NOT_EXIST)) {
       return user;
