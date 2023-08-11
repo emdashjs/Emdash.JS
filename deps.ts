@@ -1,3 +1,5 @@
+import sanitizeHtml from "https://esm.sh/sanitize-html@2.11.0";
+export { sanitizeHtml };
 export * as Path from "https://deno.land/std@0.196.0/path/mod.ts";
 export * as Fs from "https://deno.land/std@0.196.0/fs/exists.ts";
 export * as Base64 from "https://deno.land/std@0.196.0/encoding/base64.ts";
@@ -9,6 +11,7 @@ export {
   Struct,
 } from "https://codeberg.org/aaronhuggins/struct.js/raw/tag/0.8.0/mod.ts";
 export { bcrypt, bcryptVerify } from "https://esm.sh/hash-wasm@4.9.0";
+export { marked } from "https://esm.sh/marked@7.0.1";
 export { CookieMap } from "https://deno.land/std@0.196.0/http/cookie_map.ts";
 export { toHashString } from "https://deno.land/std@0.196.0/crypto/to_hash_string.ts";
 export {
@@ -34,6 +37,7 @@ export {
   createXMLRenderer,
   xml,
 } from "https://deno.land/x/xml4jsx@1.0.0/mod.ts";
+export { bundle, transpile } from "https://deno.land/x/emit@0.25.0/mod.ts";
 
 declare global {
   interface URLSearchParams extends Map<string, string> {

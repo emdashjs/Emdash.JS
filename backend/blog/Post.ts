@@ -45,3 +45,19 @@ export class Post extends KvRecord<RecordType> {
     return await count(APP_COLLECTION.USER);
   }
 }
+
+export const DEFAULT_POST = new Post({
+  title: "Example Blog Post",
+  subtitle: "Example subtitle",
+  content: `
+## Markdown
+Every post is written in Github-flavor Markdown. This makes authoring easy, and hopefully delightful!
+
+**Example code block**
+\`\`\`typescript
+export function helloWorld(): string {
+  return "Hello, world!";
+}
+\`\`\`
+  `,
+});
