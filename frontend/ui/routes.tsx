@@ -126,11 +126,18 @@ uiRouter.get("/test", (context) => {
     <App>
       <HelmetAny>
         <link rel="stylesheet" href="/static/editor.css" />
+        <link
+          rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css"
+        />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js">
+        </script>
         <script type="module" defer={true}>
           {`
           import { Editor } from "/static/editor.js";
           const editor = new Editor({ markdown: "Hello, **world**!" }).render();
           console.log(editor);
+          window.__markdownEditor = editor;
           `}
         </script>
       </HelmetAny>
