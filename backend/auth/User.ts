@@ -4,7 +4,7 @@ import { BasicKvRecord, JsonLike } from "../deno_kv/types.ts";
 import { uuidv5 } from "./uuidv5.ts";
 import { count, database } from "../deno_kv/database.ts";
 import { isStrongPassword } from "./isStrongPassword.ts";
-import { BcryptAes } from "./BcryptAes.ts";
+import { PasswordAes } from "./PasswordAes.ts";
 
 type RecordType = typeof APP_COLLECTION.USER;
 const RecordType = APP_COLLECTION.USER;
@@ -60,7 +60,7 @@ export class User extends KvRecord<RecordType> {
     if (!this.hydrated && !(await this.get())) {
       throw new Error(ERROR.AUTH.NOT_AUTHENTICATED);
     }
-    if (!await bcryptAes.verify(password, this.internal.hash)) {
+    if (!await PasswordAes.verify(password, this.internal.hash)) {
       throw new Error(ERROR.AUTH.NOT_AUTHENTICATED);
     }
     return this;
@@ -70,7 +70,7 @@ export class User extends KvRecord<RecordType> {
     if (!isStrongPassword(password, APP_DATA.PASSWORD_RULES)) {
       throw new Error(ERROR.AUTH.PASSWORD_STRENGTH);
     }
-    this.internal.hash = await bcryptAes.hash(password);
+    this.internal.hash = await PasswordAes.hash(password);
     await this.set();
     return this;
   }
@@ -124,8 +124,6 @@ export class User extends KvRecord<RecordType> {
     return record.type === RecordType;
   }
 }
-
-const bcryptAes = new BcryptAes(APP_DATA.SESSION_KEY || APP_DATA.UUID);
 
 export const USER_BUILTIN = {
   NOT_EXIST: new User({
