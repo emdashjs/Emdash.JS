@@ -1,10 +1,11 @@
-import { APP_COLLECTION, APP_DATA, ERROR } from "../constants.ts";
+import { APP_COLLECTION, ERROR } from "../constants.ts";
 import { KvJsonExclude, KvJsonPartial, KvRecord } from "../deno_kv/KvRecord.ts";
 import { BasicKvRecord, JsonLike } from "../deno_kv/types.ts";
 import { uuidv5 } from "./uuidv5.ts";
 import { count, database } from "../deno_kv/database.ts";
 import { isStrongPassword } from "./isStrongPassword.ts";
 import { PasswordAes } from "./PasswordAes.ts";
+import { APP_DATA } from "../AppData.ts";
 
 type RecordType = typeof APP_COLLECTION.USER;
 const RecordType = APP_COLLECTION.USER;
@@ -67,7 +68,7 @@ export class User extends KvRecord<RecordType> {
   }
 
   async setPassword(password: string): Promise<this> {
-    if (!isStrongPassword(password, APP_DATA.PASSWORD_RULES)) {
+    if (!isStrongPassword(password, APP_DATA.password_rules)) {
       throw new Error(ERROR.AUTH.PASSWORD_STRENGTH);
     }
     this.internal.hash = await PasswordAes.hash(password);
@@ -108,7 +109,7 @@ export class User extends KvRecord<RecordType> {
 
   static id(idOrEmail: string): string {
     return idOrEmail.includes("@")
-      ? uuidv5(idOrEmail, APP_DATA.UUID)
+      ? uuidv5(idOrEmail, APP_DATA.uuid)
       : idOrEmail;
   }
 
@@ -132,9 +133,9 @@ export const USER_BUILTIN = {
     last_name: "Exist",
   }),
   SYSTEM: new User({
-    id: APP_DATA.UUID,
+    id: APP_DATA.uuid,
     first_name: "System",
     last_name: "User",
-    email: APP_DATA.EMAIL,
+    email: APP_DATA.email,
   }),
 } as const;

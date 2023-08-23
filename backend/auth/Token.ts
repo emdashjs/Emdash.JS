@@ -1,5 +1,6 @@
 import { Base64Url, Member, Struct } from "../../deps.ts";
-import { APP_COLLECTION, APP_DATA } from "../constants.ts";
+import { APP_DATA } from "../AppData.ts";
+import { APP_COLLECTION } from "../constants.ts";
 import { KvRecord } from "../deno_kv/KvRecord.ts";
 import { count } from "../deno_kv/database.ts";
 
@@ -102,8 +103,8 @@ export class Token<T extends RecordType = RecordType> extends KvRecord<T> {
   }
 
   static ttl(): number {
-    let count = Number.parseFloat(APP_DATA.SESSION_TTL.replace(/m|h|d/gui, ""));
-    let kind = APP_DATA.SESSION_TTL.replace(/\d/gui, "")
+    let count = Number.parseFloat(APP_DATA.session_ttl.replace(/m|h|d/gui, ""));
+    let kind = APP_DATA.session_ttl.replace(/\d/gui, "")
       .toLowerCase() as TtlKind;
     if (!TTL_KEYS.includes(kind)) {
       kind = "d";
@@ -149,7 +150,7 @@ async function importSessionKey() {
   const encoder = new TextEncoder();
   return await crypto.subtle.importKey(
     "raw",
-    encoder.encode(APP_DATA.SESSION_KEY || APP_DATA.UUID),
+    encoder.encode(APP_DATA.secret_key || APP_DATA.uuid),
     { name: "HMAC", hash: "SHA-512" },
     false,
     ["sign", "verify"],

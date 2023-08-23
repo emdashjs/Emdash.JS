@@ -3,7 +3,8 @@ import { Renderer } from "./Renderer.ts";
 import { USER_BUILTIN } from "../auth/User.ts";
 import { AccessToken, SessionToken, User } from "../auth/mod.ts";
 import { ServerTiming } from "./ServerTiming.ts";
-import { APP_DATA, ERROR, HTTP_CODE } from "../constants.ts";
+import { ERROR, HTTP_CODE } from "../constants.ts";
+import { APP_DATA } from "../AppData.ts";
 
 export class ContextState {
   #context: Context<ContextState>;
@@ -31,7 +32,7 @@ export class ContextState {
   }
 
   async authenticate(): Promise<boolean> {
-    if (!(APP_DATA.FIRST_USER && await User.count() === 0)) {
+    if (!(APP_DATA.first_user && await User.count() === 0)) {
       if (this.user && this.user.internal.state !== "disabled") {
         let authenticated = false;
         if (this.session) {

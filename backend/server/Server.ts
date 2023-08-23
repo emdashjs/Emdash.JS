@@ -6,8 +6,8 @@ import {
   Router,
   RouterContext,
 } from "../../deps.ts";
+import { APP_DATA } from "../AppData.ts";
 import { SessionToken } from "../auth/SessionToken.ts";
-import { APP_DATA } from "../constants.ts";
 import { MemoryCache } from "./Cache.ts";
 import { ContextState } from "./ContextState.ts";
 import { FakeConn } from "./FakeConn.ts";
@@ -134,7 +134,7 @@ export class Server {
 
   static REDIRECT_BACK: typeof REDIRECT_BACK = REDIRECT_BACK;
   static STATIC_ROOT = `${Deno.cwd()}${
-    APP_DATA.STATIC.startsWith("/") ? APP_DATA.STATIC : `/${APP_DATA.STATIC}`
+    APP_DATA.static.startsWith("/") ? APP_DATA.static : `/${APP_DATA.static}`
   }`;
 
   static middleware(

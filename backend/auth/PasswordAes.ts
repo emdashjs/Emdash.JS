@@ -8,7 +8,7 @@ import {
   timingSafeEqual,
 } from "../../deps.ts";
 import { hash as argon2Hash } from "https://deno.land/x/argontwo@0.1.1/mod.ts";
-import { APP_DATA } from "../constants.ts";
+import { APP_DATA } from "../AppData.ts";
 
 const randomLength = 16 as const;
 const decoder = new TextDecoder();
@@ -313,7 +313,7 @@ export class PasswordAes {
   constructor(
     { algorithm = "pbkdf2", level = "LOW" }: PasswordAesOptions = {},
   ) {
-    const secret = APP_DATA.SESSION_KEY || APP_DATA.UUID;
+    const secret = APP_DATA.secret_key || APP_DATA.uuid;
     this.#base = algorithm === "argon2"
       ? new Argon2Aes(secret, level)
       : algorithm === "bcrypt"

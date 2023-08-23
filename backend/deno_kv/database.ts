@@ -1,5 +1,6 @@
 /// <reference lib="deno.unstable" />
-import { APP_COLLECTION, APP_DATA, IS_DENO_DEPLOY } from "../constants.ts";
+import { APP_DATA } from "../AppData.ts";
+import { APP_COLLECTION, IS_DENO_DEPLOY } from "../constants.ts";
 
 let mutex: Promise<Deno.Kv> | undefined;
 let kv: Deno.Kv | undefined;
@@ -14,7 +15,7 @@ export async function database() {
         }
       }, 10);
     });
-    let appDataFolder = APP_DATA.FOLDER;
+    let appDataFolder = APP_DATA.folder;
     if (appDataFolder) {
       await Deno.mkdir(appDataFolder, { recursive: true });
       appDataFolder = appDataFolder.endsWith("/")
@@ -24,7 +25,7 @@ export async function database() {
     if (IS_DENO_DEPLOY) {
       return kv = await Deno.openKv();
     }
-    return kv = await Deno.openKv(`${appDataFolder}${APP_DATA.NAME}.db`);
+    return kv = await Deno.openKv(`${appDataFolder}${APP_DATA.name}.db`);
   }
   return await mutex;
 }

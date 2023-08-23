@@ -1,4 +1,9 @@
-import { getStrengthOptions } from "./auth/isStrongPassword.ts";
+import { APP_DATA } from "./AppData.ts";
+
+if (!APP_DATA.secret_key) {
+  console.warn("!!   NO SECRET KEY SET, ALL USER SESSIONS ARE INSECURE.   !!");
+  console.warn('!! SET ENVIRONMENT VAR "APP_DATA_SECRET_KEY" IMMEDIATELY. !!');
+}
 
 export const IS_DENO_DEPLOY = Deno.env.get("DENO_DEPLOYMENT_ID") !== undefined;
 
@@ -10,29 +15,6 @@ export const APP_COLLECTION = {
   SESSION: "session_token",
   USER: "user",
 } as const;
-
-const defaultRules =
-  "minLength:12;minLowercase:2;minUppercase:2;minNumbers:2;minSymbols:2";
-const providedRules = Deno.env.get("APP_DATA_PASSWORD_RULES")?.trim();
-const firstUser = Deno.env.get("APP_DATA_FIRST_USER")?.toLowerCase() ?? "true";
-export const APP_DATA = {
-  FIRST_USER: firstUser === "true",
-  FOLDER: Deno.env.get("APP_DATA_FOLDER") ?? "",
-  STATIC: Deno.env.get("APP_DATA_STATIC") || "static",
-  SESSION_TTL: Deno.env.get("APP_DATA_SESSION_TTL") || "7d",
-  NAME: Deno.env.get("APP_DATA_NAME") || "blogger.js",
-  UUID: Deno.env.get("APP_DATA_UUID") || "bab51817-3eac-4726-8d3b-0a57f886e8bf",
-  EMAIL: Deno.env.get("APP_DATA_EMAIL") ?? "",
-  PASSWORD_RULES: providedRules
-    ? getStrengthOptions(providedRules)
-    : getStrengthOptions(defaultRules),
-  SESSION_KEY: Deno.env.get("APP_DATA_SESSION_KEY")?.trim() ?? "",
-} as const;
-
-if (!APP_DATA.SESSION_KEY) {
-  console.warn("!!   NO SESSION KEY SET, ALL USER SESSIONS ARE INSECURE.   !!");
-  console.warn('!! SET ENVIRONMENT VAR "APP_DATA_SESSION_KEY" IMMEDIATELY. !!');
-}
 
 export type ERROR = typeof ERROR;
 export const ERROR = {
