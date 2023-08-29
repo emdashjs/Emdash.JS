@@ -61,27 +61,31 @@ The app supports a limited number of data sources to balance flexibility with ma
 |-------------|--------------------------------------------------------------------|
 | CockroachDB | *Same as Postgres.*                                                |
 | Deno KV     | `denokv://[<DEFAULT> or working directory relative path]`          |
-| Git         | `git://[host][:port][path]`                                        |
-| Postgres    | `postgres://[user]:[password]@[host][:port][path]?sslmode=require` |
+| Git         | `git://[user@]host[:port]/path.git`                                |
+| Postgres    | `postgres://[user:password@]host[:port][path]?sslmode=require`     |
 | Markdown    | `markdown://[<DEFAULT> or working directory relative path]`        |
 
 #### Deno KV
 
-Deno KV is the default data source using `denokv://<DEFAULT>`. The `<DEFAULT>` symbol will open a KV database using Deno's built-in storage location. A working directory relative path will open a KV database at the provided path. When deploying to Deno Deploy, any Deno KV connection will default to `denokv://<DEFAULT>` due to platform limitations.
+Deno KV is the default data source using `denokv://<DEFAULT>`. A connection may also be made to a path relative to the project like `denokv://mydatabase.db`. The `<DEFAULT>` symbol will open a KV database using Deno's built-in storage location. A working directory relative path will open a KV database at the provided path. When deploying to Deno Deploy, any Deno KV connection will fall back to `denokv://<DEFAULT>` due to platform limitations.
 
 #### CockroachDB and Postgres
 
-The Postgres wire porotocol is supported by CockroachDB, and the internal Postgres adapter uses the SQL subset which CockroachDB supports. The adapter is implemented using [Deno Drivers Postgres](https://deno.land/x/postgres). Each collection maps to a table by name. Keys are stored in columns as text with a reasonably high size limit. Documents are stored as type `JSONB`.
+The Postgres wire porotocol is supported by CockroachDB, and the internal Postgres adapter uses the SQL subset which CockroachDB supports. A secure connection to Postgres with no user might be `postgres://myserver.co.uk?ssl=required`.
+
+The adapter is implemented using [Deno Drivers Postgres](https://deno.land/x/postgres). Each collection maps to a table by name. Keys are stored in columns as text with a reasonably high size limit. Documents are stored as type `JSONB`.
 
 #### Git
 
-A Git data source is a combination of Git using SSH and Deno KV for storing private data that does not belong in a repository. Git data should be organized like the Markdown adapter if there's pre-existing markdown files. Additionally, an `Images` directory will be dynamically created for uploaded images.
+A Git data source is a combination of Git using SSH and Deno KV for storing private data that does not belong in a repository. A connection string for a Github repository might look like `git://git@github.com/myuser/myproject.git`.
+
+Git data should be organized like the Markdown adapter if there's pre-existing markdown files. Additionally, an `Images` directory will be dynamically created for uploaded images.
 
 Records like `User`, `Identity`, and `AppData` will all be stored in Deno KV. This special case allows for plugins to work as expected and for authors to log in and create/edit posts in Git directly from the blog.
 
 #### Markdown
 
-Markdown is a read-only data source. Using this adapter disables all live functionality except themes.
+Markdown is a read-only data source. Using this adapter disables all live functionality except themes. Connecting to a markdown folder named `./assets/myfiles` in the root of your project would look like `markdown://assets/myfiles`.
 
 The adapter expects a directory structure with a `Posts` folder and optionally a `Pages` folder. These folder names are case-sensitive. You may place markdown files in these folders or in deeply nested subfolders. Only files ending with extension `.md` will be cached and their file names used as the Page or Post slug.
 
