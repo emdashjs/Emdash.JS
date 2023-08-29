@@ -7,9 +7,9 @@ This document lays out individual tasks for release.
 - [x] Generic Data Source system
 - [x] Deno KV Data Source driver
 - [ ] User MVP
-  - [ ] User record
+  - [x] User record
   - [ ] Identity record
-  - [ ] Author record
+  - [x] Author record
   - [x] Login API
   - [ ] Oauth logic
   - [ ] TOTP API
