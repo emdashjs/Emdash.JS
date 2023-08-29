@@ -4,7 +4,7 @@ import { Awaiterable, DataRecord, DataSource } from "./DataSource.ts";
 export interface ActiveRecord extends DataRecord {
 }
 
-export class ActiveRecord {
+export abstract class ActiveRecord {
   id!: string;
   complexId?: string;
 
