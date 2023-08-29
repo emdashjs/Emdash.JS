@@ -301,9 +301,9 @@ class Argon2Aes extends BaseAes {
 }
 
 export type SecurityLevel = "MAX" | "HIGH" | "MID" | "LOW";
-
+export type PasswordAlgorithm = "argon2" | "bcrypt" | "pbkdf2";
 export type PasswordAesOptions = {
-  algorithm?: "argon2" | "bcrypt" | "pbkdf2";
+  algorithm?: PasswordAlgorithm;
   level?: SecurityLevel;
 };
 
