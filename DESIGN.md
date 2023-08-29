@@ -47,6 +47,7 @@ Data is stored in NoSQL collections as documents, with a primary key and an opti
 | `Author`     | `User`       | User information for authors.                                |
 | `Content`    | `DataRecord` | Base primitive for all content.                              |
 | `Identity`   | `DataRecord` | Identity information for authentication and authorization.   |
+| `Image`      | `Uint8Array` | Raw image data for serving images from a data source.        |
 | `Page`       | `Content`    | Page content, route, and metadata.                           |
 | `Post`       | `Content`    | Post content, route, and metadata.                           |
 | `Reader`     | `User`       | User information for readers.                                |

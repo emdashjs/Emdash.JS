@@ -5,7 +5,7 @@ This document lays out individual tasks for release.
 ## Milestone 1: Ya Basic
 
 - [x] Generic Data Source system
-- [ ] Deno KV Data Source driver
+- [x] Deno KV Data Source driver
 - [ ] User MVP
   - [ ] User record
   - [ ] Identity record
