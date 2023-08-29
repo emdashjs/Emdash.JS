@@ -40,8 +40,8 @@ export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
   collection: string;
   schema: ActiveSchema<T>;
 
-  constructor(name: string, source: DataSource, schema: ActiveSchema<T>) {
-    this.collection = name;
+  constructor(schema: ActiveSchema<T>, source: DataSource) {
+    this.collection = schema.name;
     this.schema = schema;
     collectionSource.set(this, source);
   }
