@@ -1,8 +1,8 @@
-# Emmalou.js
+# Emdash.js
 
-Emmalou.js is an extensible modern blog app, based on modern JavaScript technologies for web and server. It can be as simple as reading Markdown files from disk or as rich as a live content writing and editing platform.
+Emdash.js is an extensible modern blog app, based on modern JavaScript technologies for web and server. It can be as simple as reading Markdown files from disk or as rich as a live content writing and editing platform.
 
-We were tired of the complexity and mental load of blogging software like Wordpress, static site rendering tools, and the lock-in of commercial blogging platforms. Emmalou.js is bold, beautiful, straightforward, and liberating from the start.
+We were tired of the complexity and mental load of blogging software like Wordpress, static site rendering tools, and the lock-in of commercial blogging platforms. Emdash.js is bold, beautiful, straightforward, and liberating from the start.
 
 ## Design
 
@@ -28,6 +28,14 @@ Routes are handled in order of precendence. Authors may provide arbitrary Page r
 |     3    | Page   | `/{route(.+)}`        | **Author**           |
 |     4    | Plugin | `/{route(.+)}`        | **Plugin**           |
 
+### Authentication
+
+Emdash.js ships with support for internal authentication, third-party authentication, and time-based one-time password (TOTP) apps. OAuth is recommended over internal authentication, especially for serverless deployments where sufficient security may exceed limititions.
+
+Third-party authentication supports any single provider exposed by [deno_kv_oauth](https://deno.land/x/deno_kv_oauth). Only one provider may be configured at a time. Enabling third-party authentication disabled internal authentication.
+
+TOTP apps complement internal or third-party authentication as a second factor.
+
 ### Data
 
 Data is stored in NoSQL collections as documents, with a primary key and an optional secondary key. Data sources should be flexible instead of strict, especially as read/write sources. Data sources must handle arbitrary properties in documents and all JSON data types including null. Such documents are the base primitive `DataRecord`; all other primitives derive from this.
@@ -50,9 +58,10 @@ The app supports a limited number of data sources to balance flexibility with ma
 
 | Source      | Scheme                                                             |
 |-------------|--------------------------------------------------------------------|
-| Deno KV     | `denokv://[<DEFAULT> or working directory relative path]`          |
 | CockroachDB | *Same as Postgres.*                                                |
-| Postgres    | `postgres://[user]:[password]@[host]:[port][path]?sslmode=require` |
+| Deno KV     | `denokv://[<DEFAULT> or working directory relative path]`          |
+| Git         | `git://[host][:port][path]`                                        |
+| Postgres    | `postgres://[user]:[password]@[host][:port][path]?sslmode=require` |
 | Markdown    | `markdown://[<DEFAULT> or working directory relative path]`        |
 
 #### Deno KV
@@ -62,6 +71,12 @@ Deno KV is the default data source using `denokv://<DEFAULT>`. The `<DEFAULT>` s
 #### CockroachDB and Postgres
 
 The Postgres wire porotocol is supported by CockroachDB, and the internal Postgres adapter uses the SQL subset which CockroachDB supports. The adapter is implemented using [Deno Drivers Postgres](https://deno.land/x/postgres). Each collection maps to a table by name. Keys are stored in columns as text with a reasonably high size limit. Documents are stored as type `JSONB`.
+
+#### Git
+
+A Git data source is a combination of Git using SSH and Deno KV for storing private data that does not belong in a repository. Git data should be organized like the Markdown adapter if there's pre-existing markdown files. Additionally, an `Images` directory will be dynamically created for uploaded images.
+
+Records like `User`, `Identity`, and `AppData` will all be stored in Deno KV. This special case allows for plugins to work as expected and for authors to log in and create/edit posts in Git directly from the blog.
 
 #### Markdown
 
@@ -85,16 +100,17 @@ Plugins extend the functionality of the app. These run in a semi-sandboxed manne
 
 #### Shipped Plugins
 
-The Emmalou.js team intends to ship a few plugins with the app. These plgins may serve both as an example and give some added value to app users.
+The Emdash.js team intends to ship a few plugins with the app. These plgins may serve both as an example and give some added value to app users.
 
 | Name                 | Type    | Status | Description                                                          |
 |----------------------|:-------:|--------|----------------------------------------------------------------------|
 | **Commento**         | Widget  | TODO   | Adds comments to Posts from [Commento](https://commento.io).         |
 | **Disqus**           | Widget  | TODO   | Adds comments to Posts from [Disqus](https://disqus.com).            |
 | **Emerald City**     | Theme   | TODO   | A great and powerful green theme.                                    |
-| **Emmalou**          | Theme   | TODO   | A beautiful, default theme.                                          |
+| **Emdash Bright**    | Theme   | TODO   | A beautiful, default theme.                                          |
+| **Full-text Search** | Widget  | TODO   | Site search built on OramaSearch.                                    |
 | **Module Publisher** | Content | TODO   | Publish code modules from raw uploads, Github, Gitlab, and Codeberg. |
 
 #### Security Risks
 
-There are inherent risks with any plugin system. Plugins can execute code both in backend and frontend contexts; and modify the look and feel of the app. Only use trusted plugins; such as those provided by the Emmalou.js team, audited projects, a well-known developer, or written for your deployment.
+There are inherent risks with any plugin system. Plugins can execute code both in backend and frontend contexts; and modify the look and feel of the app. Only use trusted plugins; such as those provided by the Emdash.js team, audited projects, a well-known developer, or written for your deployment.
