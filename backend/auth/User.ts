@@ -1,7 +1,7 @@
 import { APP_COLLECTION, ERROR } from "../constants.ts";
 import { KvJsonExclude, KvJsonPartial, KvRecord } from "../deno_kv/KvRecord.ts";
 import { BasicKvRecord, JsonLike } from "../deno_kv/types.ts";
-import { uuidv5 } from "./uuidv5.ts";
+import { uuidv5 } from "../database/uuidv5.ts";
 import { count, database } from "../deno_kv/database.ts";
 import { isStrongPassword } from "./isStrongPassword.ts";
 import { PasswordAes } from "./PasswordAes.ts";
