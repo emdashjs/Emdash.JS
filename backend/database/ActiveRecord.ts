@@ -32,17 +32,17 @@ export abstract class ActiveRecord {
   }
 }
 
-export interface ActiveSchema<T extends ActiveRecord> {
+export interface ActiveModel<T extends ActiveRecord> {
   new (record: Partial<T>): T;
 }
 
 export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
   collection: string;
-  schema: ActiveSchema<T>;
+  model: ActiveModel<T>;
 
-  constructor(schema: ActiveSchema<T>, source: DataSource) {
+  constructor(schema: ActiveModel<T>, source: DataSource) {
     this.collection = schema.name;
-    this.schema = schema;
+    this.model = schema;
     collectionSource.set(this, source);
   }
 
@@ -65,7 +65,7 @@ export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
   }
 
   newRecord(data: Partial<T>): T {
-    const record = new this.schema(data);
+    const record = new this.model(data);
     recordCollection.set(record, this);
     return record;
   }
