@@ -8,7 +8,7 @@ This document lays out individual tasks for release.
 - [x] Deno KV Data Source driver
 - [ ] User MVP
   - [x] User record
-  - [ ] Identity record
+  - [x] Identity record
   - [x] Author record
   - [x] Login API
   - [ ] Oauth logic
