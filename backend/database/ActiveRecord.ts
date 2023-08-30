@@ -21,13 +21,17 @@ export abstract class ActiveRecord {
     }
   }
 
+  get collection(): string {
+    return this.constructor.name;
+  }
+
   async save(): Promise<boolean> {
-    const col = recordCollection.get(this);
+    const col = recordCollection.get(this.collection);
     return await col?.set(this) ?? false;
   }
 
   async destroy(): Promise<boolean> {
-    const col = recordCollection.get(this);
+    const col = recordCollection.get(this.collection);
     return await col?.delete(this.id, this.complexId) ?? false;
   }
 }
@@ -37,19 +41,26 @@ export interface ActiveModel<T extends ActiveRecord> {
 }
 
 export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
-  collection: string;
+  name: string;
   model: ActiveModel<T>;
 
   constructor(schema: ActiveModel<T>, source: DataSource) {
-    this.collection = schema.name;
+    this.name = schema.name;
     this.model = schema;
-    collectionSource.set(this, source);
+    if (!collectionSource.has(this.name)) {
+      collectionSource.set(this.name, source);
+    }
+    if (!recordCollection.has(this.name)) {
+      recordCollection.set(this.name, this);
+    } else {
+      return recordCollection.get(this.name)!;
+    }
   }
 
   async *#deleteMany(
     keys: Awaiterable<[id: string, complexId?: string]>,
   ) {
-    const { collection } = this;
+    const { name: collection } = this;
     for await (const key of keys) {
       const [id, complexId] = key;
       yield { collection, id, complexId };
@@ -57,7 +68,7 @@ export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
   }
 
   async *#setMany(records: Awaiterable<T>) {
-    const { collection } = this;
+    const { name: collection } = this;
     for await (const record of records) {
       const { id, complexId } = record;
       yield { collection, id, complexId, record };
@@ -66,13 +77,12 @@ export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
 
   newRecord(data: Partial<T>): T {
     const record = new this.model(data);
-    recordCollection.set(record, this);
     return record;
   }
 
   async delete(id: string, complexId?: string): Promise<boolean> {
-    const source = collectionSource.get(this)!;
-    const { collection } = this;
+    const source = collectionSource.get(this.name)!;
+    const { name: collection } = this;
     const result = await source.driver.delete({ collection, id, complexId });
     return result.success;
   }
@@ -80,14 +90,14 @@ export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
   async deleteMany(
     keys: Awaiterable<[id: string, complexId?: string]>,
   ): Promise<boolean> {
-    const source = collectionSource.get(this)!;
+    const source = collectionSource.get(this.name)!;
     const result = await source.driver.deleteMany(this.#deleteMany(keys));
     return result.success;
   }
 
   async get(id: string, complexId?: string): Promise<T | null> {
-    const source = collectionSource.get(this)!;
-    const { collection } = this;
+    const source = collectionSource.get(this.name)!;
+    const { name: collection } = this;
     const result = await source.driver.get({ collection, id, complexId });
     if (result.record) {
       return this.newRecord(result.record as Partial<T>);
@@ -96,8 +106,8 @@ export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
   }
 
   async *getMany(id: string): Awaiterable<T> {
-    const source = collectionSource.get(this)!;
-    const { collection } = this;
+    const source = collectionSource.get(this.name)!;
+    const { name: collection } = this;
     const result = source.driver.getMany({ collection, id });
     for await (const record of result.records) {
       yield this.newRecord(record as Partial<T>);
@@ -105,8 +115,8 @@ export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
   }
 
   async set(record: T): Promise<boolean> {
-    const source = collectionSource.get(this)!;
-    const { collection } = this;
+    const source = collectionSource.get(this.name)!;
+    const { name: collection } = this;
     const { id, complexId } = record;
     const result = await source.driver.set({
       collection,
@@ -118,20 +128,20 @@ export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
   }
 
   async setMany(records: Awaiterable<T>): Promise<boolean> {
-    const source = collectionSource.get(this)!;
+    const source = collectionSource.get(this.name)!;
     const result = await source.driver.setMany(this.#setMany(records));
     return result.success;
   }
 
   async stats(): Promise<CollectionStats> {
-    const { collection } = this;
-    const source = collectionSource.get(this)!;
-    const { recordCount } = await source.driver.stats(this.collection);
+    const { name: collection } = this;
+    const source = collectionSource.get(this.name)!;
+    const { recordCount } = await source.driver.stats(this.name);
     return { collection, recordCount };
   }
 
-  static getSourceOf(collection: GenericCollection): DataSource {
-    return collectionSource.get(collection)!;
+  static getSourceOf(collection: { name: string }): DataSource {
+    return collectionSource.get(collection.name)!;
   }
 }
 
@@ -145,5 +155,5 @@ export type CollectionStats = {
 // deno-lint-ignore no-explicit-any
 type GenericCollection = ActiveCollection<any>;
 
-const collectionSource = new WeakMap<GenericCollection, DataSource>();
-const recordCollection = new WeakMap<ActiveRecord, GenericCollection>();
+const collectionSource = new Map<string, DataSource>();
+const recordCollection = new Map<string, GenericCollection>();
