@@ -30,9 +30,9 @@ Routes are handled in order of precendence. Authors may provide arbitrary Page r
 
 ### Authentication
 
-Emdash.js ships with support for internal authentication, third-party authentication, and time-based one-time password (TOTP) apps. OAuth is recommended over internal authentication, especially for serverless deployments where sufficient security may exceed limititions.
+Emdash.js ships with support for internal authentication, third-party authentication, and time-based one-time password (TOTP) apps. Third-party is recommended over internal authentication, especially for serverless deployments where sufficient security may exceed login execution time limititions.
 
-Third-party authentication supports any single provider exposed by [deno_kv_oauth](https://deno.land/x/deno_kv_oauth). Only one provider may be configured at a time. Enabling third-party authentication disabled internal authentication.
+Third-party authentication supports most well-known providers with [deno_kv_oauth](https://deno.land/x/deno_kv_oauth). Only one provider may be configured at a time, though this may change in the future. Enabling third-party authentication disables internal authentication. Only the email address of the user is required from third-parties to correctly associate Emdash.js users with their logins. [Notion](https://www.notion.so) does not provide access to user emails during third-party authentication; as a result, their login service may not be used for authentication at this time.
 
 TOTP apps complement internal or third-party authentication as a second factor.
 

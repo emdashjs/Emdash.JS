@@ -5,6 +5,7 @@ import {
 } from "./auth/isStrongPassword.ts";
 import type { PasswordAlgorithm, SecurityLevel } from "./auth/PasswordAes.ts";
 import type {
+  AuthConfig,
   SupportedProvider,
   ThirdPartyProvider,
 } from "./auth/providers.ts";
@@ -157,18 +158,6 @@ export class AppData {
 
 // deno-lint-ignore no-explicit-any
 declare let Netlify: any;
-
-type AuthConfig = {
-  type: ThirdPartyProvider;
-  clientId: string;
-  clientSecret: string;
-  authorizationEndpointUri?: string;
-  tokenUri?: string;
-} | {
-  type: "internal";
-  level: SecurityLevel;
-  algorithm: PasswordAlgorithm;
-};
 
 type AppDataLike = Omit<
   AppData,
