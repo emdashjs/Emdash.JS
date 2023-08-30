@@ -32,9 +32,34 @@ Routes are handled in order of precendence. Authors may provide arbitrary Page r
 
 Emdash.js ships with support for internal authentication, third-party authentication, and time-based one-time password (TOTP) apps. Third-party is recommended over internal authentication, especially for serverless deployments where sufficient security may exceed login execution time limititions.
 
-Third-party authentication supports most well-known providers with [deno_kv_oauth](https://deno.land/x/deno_kv_oauth). Only one provider may be configured at a time, though this may change in the future. Enabling third-party authentication disables internal authentication. Only the email address of the user is required from third-parties to correctly associate Emdash.js users with their logins. [Notion](https://www.notion.so) does not provide access to user emails during third-party authentication; as a result, their login service may not be used for authentication at this time.
+Third-party authentication supports most well-known providers with [deno_kv_oauth](https://deno.land/x/deno_kv_oauth). Only one provider may be configured at a time, though this may change in the future. Enabling third-party authentication disables internal authentication.
 
 TOTP apps complement internal or third-party authentication as a second factor.
+
+#### Recommended Providers
+
+These providers are recommended as well-known providers which the Emdash.js team prefers.
+
+- **Auth0**
+- **Dropbox**
+- **Gitlab**
+- **Okta**
+
+These are recommended for their easy setup.
+
+- Discord
+- Github
+- Google
+- Patreon
+
+#### Known Issues with Providers
+
+Only the email address of the user is required from third-parties to correctly associate Emdash.js users with their logins. Most providers make email addresses available, and support user authentication features. However, not all providers do this and some have known issues.
+
+- **Auth0** and **Okta** are special cases where a domain must be provided.
+- [Notion](https://www.notion.so) does not provide access to user emails during third-party authentication; as a result, their service may not be used for authentication with Emdash.js at this time.
+- The website formerly known as **Twitter** is *technically* supported, but entirely untested. APIs at this service are changing rapidly and it is not recommended as an authentication provider. It may break at any time, if it even works at all.
+- Care has been taken to not expose Emdash.js internals to **Facebook**. However, this provider should be considered *untrusted* if user privacy is a priority.
 
 ### Data
 
