@@ -10,6 +10,8 @@ export class Identity extends ActiveRecord {
   provider!: SupportedProvider;
   /** The password hash and salt, if provider is `internal` */
   hash?: string;
+  /** The session id for an Oauth access token, if used. */
+  sessionId?: string;
 
   constructor(data: Partial<Identity>) {
     super({
