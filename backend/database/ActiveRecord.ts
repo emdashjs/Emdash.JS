@@ -4,7 +4,7 @@ import { Awaiterable, DataRecord, DataSource } from "./DataSource.ts";
 export interface ActiveRecord extends DataRecord {
 }
 
-export abstract class ActiveRecord {
+export abstract class ActiveRecord<Collection extends string = string> {
   id!: string;
   complexId?: string;
 
@@ -21,9 +21,7 @@ export abstract class ActiveRecord {
     }
   }
 
-  get collection(): string {
-    return this.constructor.name;
-  }
+  abstract get collection(): Collection;
 
   async save(): Promise<boolean> {
     const col = recordCollection.get(this.collection);
@@ -38,6 +36,7 @@ export abstract class ActiveRecord {
 
 export interface ActiveModel<T extends ActiveRecord> {
   new (record: Partial<T>): T;
+  prototype: T;
 }
 
 export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
@@ -45,7 +44,7 @@ export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
   model: ActiveModel<T>;
 
   constructor(schema: ActiveModel<T>, source: DataSource) {
-    this.name = schema.name;
+    this.name = schema.prototype.collection;
     this.model = schema;
     if (!collectionSource.has(this.name)) {
       collectionSource.set(this.name, source);

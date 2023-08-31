@@ -4,7 +4,7 @@ import { uuidv5 } from "../database/uuidv5.ts";
 import type { SupportedProvider } from "../auth/providers.ts";
 
 /** The identity model. Not intended to be exposed to any external API. */
-export class Identity extends ActiveRecord {
+export class Identity extends ActiveRecord<"Identity"> {
   email!: string;
   /** The OAuth provider name or `internal` */
   provider!: SupportedProvider;
@@ -18,5 +18,9 @@ export class Identity extends ActiveRecord {
       ...data,
       id: data.id ? data.id : uuidv5(data.email!, APP_DATA.uuid),
     });
+  }
+
+  get collection(): "Identity" {
+    return "Identity";
   }
 }
