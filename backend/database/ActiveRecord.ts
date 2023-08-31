@@ -1,14 +1,17 @@
-import { Awaiterable, DataRecord, DataSource } from "./DataSource.ts";
+// deno-lint-ignore-file no-empty-interface
+import type { Precise } from "../types.ts";
+import type { Awaiterable, DataRecord, DataSource } from "./DataSource.ts";
 
-// deno-lint-ignore no-empty-interface
 export interface ActiveRecord extends DataRecord {
 }
 
-export abstract class ActiveRecord<Collection extends string = string> {
+export abstract class ActiveRecord<
+  Collection extends Precise.String = Precise.String,
+> {
   id!: string;
   complexId?: string;
 
-  constructor(record: Partial<ActiveRecord>) {
+  constructor(record: Partial<ActiveRecord<Collection>>) {
     Object.assign(this, record, { save: this.save, destroy: this.destroy });
     if (!this.id) {
       this.id = crypto.randomUUID();
@@ -24,35 +27,40 @@ export abstract class ActiveRecord<Collection extends string = string> {
   abstract get collection(): Collection;
 
   async save(): Promise<boolean> {
-    const col = recordCollection.get(this.collection);
+    const col = recordCollection.get(this.collection as string);
     return await col?.set(this) ?? false;
   }
 
   async destroy(): Promise<boolean> {
-    const col = recordCollection.get(this.collection);
+    const col = recordCollection.get(this.collection as string);
     return await col?.delete(this.id, this.complexId) ?? false;
   }
 }
 
-export interface ActiveModel<T extends ActiveRecord> {
-  new (record: Partial<T>): T;
-  prototype: T;
-}
+export type ActiveModel<
+  Record extends ActiveRecord = ActiveRecord,
+> = new (record: Precise.Value) => Record;
+export type CollectionName<Model extends ActiveModel | ActiveRecord> =
+  Model extends ActiveModel<infer Record>
+    ? Record extends ActiveRecord<infer Name> ? Name
+    : Precise.String
+    : Model extends ActiveRecord<infer Name> ? Name
+    : Precise.String;
 
 export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
-  name: string;
+  name: CollectionName<T>;
   model: ActiveModel<T>;
 
-  constructor(schema: ActiveModel<T>, source: DataSource) {
-    this.name = schema.prototype.collection;
-    this.model = schema;
+  constructor(model: ActiveModel<T>, source: DataSource) {
+    this.name = model.prototype.collection;
+    this.model = model;
     if (!collectionSource.has(this.name)) {
       collectionSource.set(this.name, source);
     }
     if (!recordCollection.has(this.name)) {
       recordCollection.set(this.name, this);
     } else {
-      return recordCollection.get(this.name)!;
+      return recordCollection.get(this.name) as typeof this;
     }
   }
 
@@ -75,8 +83,13 @@ export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
   }
 
   newRecord(data: Partial<T>): T {
-    const record = new this.model(data);
+    const record = new this.model(data) as T;
     return record;
+  }
+
+  async create() {
+    const source = collectionSource.get(this.name)!;
+    await source.driver.create(this.name);
   }
 
   async delete(id: string, complexId?: string): Promise<boolean> {
@@ -151,8 +164,7 @@ export type CollectionStats = {
   collection: string;
 };
 
-// deno-lint-ignore no-explicit-any
-type GenericCollection = ActiveCollection<any>;
+type GenericCollection = ActiveCollection<ActiveRecord>;
 
 const collectionSource = new Map<string, DataSource>();
 const recordCollection = new Map<string, GenericCollection>();

@@ -1,30 +1,34 @@
-// deno-lint-ignore-file ban-types
-export abstract class DataSource<Type = {}, Proto extends string = string> {
-  options: Readonly<DataSourceOptions<Proto>>;
+import type { Precise } from "../types.ts";
 
-  constructor(connection: `${string}://${string}`) {
+export abstract class DataSource<
+  Type = Precise.Value,
+  Protocol extends Precise.String = Precise.String,
+> {
+  options: Readonly<DataSourceOptions<Protocol>>;
+
+  constructor(connection: `${Protocol}://${string}`) {
     const [type, options] = connection.split("://");
     this.options = Object.freeze({
       connection,
       options,
-      type: type,
-    }) as this["options"];
+      type: type as Protocol,
+    });
   }
 
-  abstract get driver(): DataDriver<Type, Proto>;
+  abstract get driver(): DataDriver<Type, Protocol>;
 }
 
-export interface DataSourceOptions<Proto extends string> {
-  connection: `${Proto}://${string}`;
+export interface DataSourceOptions<Protocol extends Precise.String> {
+  connection: `${Protocol}://${string}`;
   options: string;
-  type: Proto;
+  type: Protocol;
 }
 
-export abstract class DataDriver<Type, Proto extends string> {
-  proto: Proto;
+export abstract class DataDriver<Type, Protocol extends Precise.String> {
+  proto: Protocol;
   /** The raw connection instance of the data source; used by the methods of the driver. */
   connection: Type;
-  constructor(connection: Type, proto: Proto) {
+  constructor(connection: Type, proto: Protocol) {
     this.connection = connection;
     this.proto = proto;
   }
@@ -43,7 +47,7 @@ export abstract class DataDriver<Type, Proto extends string> {
   abstract setMany(
     requests: Awaiterable<DataChangeRequest>,
   ): Promise<DataResponse>;
-  abstract stats(collection?: string): Promise<DataStats<Proto>>;
+  abstract stats(collection?: string): Promise<DataStats<Protocol>>;
 }
 
 export type Awaiterable<T> =
@@ -55,7 +59,7 @@ export type Awaiterable<T> =
 export type Promised<T> = Promise<T> | T;
 
 /** An object formatted for use by the orm. */
-export type DataRecord<T = {}> = {
+export type DataRecord<T = Precise.Value> = {
   [P: string]: unknown;
   [P: number]: unknown;
 } & {
@@ -113,11 +117,12 @@ export interface DataImageResponse extends DataResponse {
   value: Promised<Uint8Array>;
 }
 
-export interface DataStats<Proto extends string = string> extends DataResponse {
+export interface DataStats<Protocol extends Precise.String = Precise.String>
+  extends DataResponse {
   /** The type of the collection; should match the type of the data source options. */
-  type: Proto;
+  type: Protocol;
   /** If provided, a connection string for the data source. */
-  connectionString?: `${Proto}://${string}`;
+  connectionString?: `${Protocol}://${string}`;
   /** The number of records in the data source, or in the collection if specified. */
   recordCount: number;
   /** The number of collections in the data source, or 1 for a single collection, or 0 if no collection exists. */

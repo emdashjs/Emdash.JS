@@ -13,10 +13,10 @@ export class Identity extends ActiveRecord<"Identity"> {
   /** The session id for an Oauth access token, if used. */
   sessionId?: string;
 
-  constructor(data: Partial<Identity>) {
+  constructor(record: Partial<Identity>) {
     super({
-      ...data,
-      id: data.id ? data.id : uuidv5(data.email!, APP_DATA.uuid),
+      ...record,
+      id: record.id ? record.id : uuidv5(record.email!, APP_DATA.uuid),
     });
   }
 

@@ -7,10 +7,10 @@ export class User<T extends string = string> extends ActiveRecord<T> {
   firstName!: string;
   lastName!: string;
 
-  constructor(data: Partial<User>) {
+  constructor(record: Partial<User<T>>) {
     super({
-      ...data,
-      id: data.id ? data.id : uuidv5(data.email!, APP_DATA.uuid),
+      ...record,
+      id: record.id ? record.id : uuidv5(record.email!, APP_DATA.uuid),
     });
   }
 
