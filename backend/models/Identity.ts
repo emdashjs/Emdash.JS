@@ -10,7 +10,7 @@ export class Identity extends ActiveRecord<"Identity"> {
   provider!: SupportedProvider;
   /** The password hash and salt, if provider is `internal` */
   hash?: string;
-  /** The session id for an Oauth access token, if used. */
+  /** The session id for an internal session or an Oauth access token, if used. */
   sessionId?: string;
 
   constructor(record: Partial<Identity>) {
@@ -18,6 +18,10 @@ export class Identity extends ActiveRecord<"Identity"> {
       ...record,
       id: record.id ? record.id : uuidv5(record.email!, APP_DATA.uuid),
     });
+  }
+
+  get userId() {
+    return this.id;
   }
 
   get collection(): "Identity" {

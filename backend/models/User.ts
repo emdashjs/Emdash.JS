@@ -14,6 +14,10 @@ export class User<T extends string = string> extends ActiveRecord<T> {
     });
   }
 
+  get identityId() {
+    return this.id;
+  }
+
   get collection(): T {
     return "User" as T;
   }
