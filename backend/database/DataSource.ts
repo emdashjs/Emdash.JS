@@ -1,30 +1,35 @@
-import type { Precise } from "../types.ts";
-
+// deno-lint-ignore-file ban-types
 export abstract class DataSource<
-  Type = Precise.Value,
-  Protocol extends Precise.String = Precise.String,
+  Type = {},
+  Protocol extends (string & {}) = (string & {}),
 > {
-  options: Readonly<DataSourceOptions<Protocol>>;
+  options: DataSourceOptions<Protocol>;
 
   constructor(connection: `${Protocol}://${string}`) {
-    const [type, options] = connection.split("://");
-    this.options = Object.freeze({
-      connection,
-      options,
-      type: type as Protocol,
-    });
+    this.options = DataSource.parse<Protocol>(connection);
   }
 
   abstract get driver(): DataDriver<Type, Protocol>;
+
+  static parse<T extends string>(
+    connection: `${T}://${string}`,
+  ): DataSourceOptions<T> {
+    const [type, options] = connection.split("://");
+    return Object.freeze({
+      connection,
+      options,
+      type: type as T,
+    });
+  }
 }
 
-export interface DataSourceOptions<Protocol extends Precise.String> {
-  connection: `${Protocol}://${string}`;
-  options: string;
-  type: Protocol;
+export interface DataSourceOptions<Protocol extends (string & {})> {
+  readonly connection: `${Protocol}://${string}`;
+  readonly options: string;
+  readonly type: Protocol;
 }
 
-export abstract class DataDriver<Type, Protocol extends Precise.String> {
+export abstract class DataDriver<Type, Protocol extends (string & {})> {
   proto: Protocol;
   /** The raw connection instance of the data source; used by the methods of the driver. */
   connection: Type;
@@ -59,7 +64,7 @@ export type Awaiterable<T> =
 export type Promised<T> = Promise<T> | T;
 
 /** An object formatted for use by the orm. */
-export type DataRecord<T = Precise.Value> = {
+export type DataRecord<T = {}> = {
   created: string;
   modified: string;
 } & T;
@@ -114,7 +119,7 @@ export interface DataImageResponse extends DataResponse {
   value: Promised<Uint8Array>;
 }
 
-export interface DataStats<Protocol extends Precise.String = Precise.String>
+export interface DataStats<Protocol extends (string & {}) = (string & {})>
   extends DataResponse {
   /** The type of the collection; should match the type of the data source options. */
   type: Protocol;

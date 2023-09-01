@@ -2,12 +2,6 @@ import { AppData } from "./models/AppData.ts";
 
 export const APP_DATA = new AppData();
 
-// TODO: move into EmdashJS.init()
-if (!APP_DATA.secret_key) {
-  console.warn("!!   NO SECRET KEY SET, ALL USER SESSIONS ARE INSECURE.   !!");
-  console.warn('!! SET ENVIRONMENT VAR "APP_DATA_SECRET_KEY" IMMEDIATELY. !!');
-}
-
 export const IS_DENO_DEPLOY = Deno.env.get("DENO_DEPLOYMENT_ID") !== undefined;
 
 export const APP_COLLECTION = {

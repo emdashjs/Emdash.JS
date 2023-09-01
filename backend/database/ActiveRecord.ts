@@ -6,7 +6,7 @@ export interface ActiveRecord extends DataRecord {
 }
 
 export abstract class ActiveRecord<
-  Collection extends Precise.String = Precise.String,
+  Collection extends (string & {}) = (string & {}),
 > {
   id!: string;
   complexId?: string;
@@ -51,9 +51,9 @@ export type ActiveModel<
 export type CollectionName<Model extends ActiveModel | ActiveRecord> =
   Model extends ActiveModel<infer Record>
     ? Record extends ActiveRecord<infer Name> ? Name
-    : Precise.String
+    : (string & {})
     : Model extends ActiveRecord<infer Name> ? Name
-    : Precise.String;
+    : (string & {});
 
 export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
   name: CollectionName<T>;

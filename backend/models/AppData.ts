@@ -1,3 +1,4 @@
+// deno-lint-ignore-file ban-types
 import { ActiveRecord } from "../database/ActiveRecord.ts";
 import {
   getStrengthOptions,
@@ -53,8 +54,8 @@ export class AppData extends ActiveRecord<"AppData"> {
   readonly auth_security?: SecurityLevel;
   /** Used only for internal auth provider */
   readonly auth_algorithm?: PasswordAlgorithm;
-  readonly auth_provider!: SupportedProvider | Precise.String;
-  readonly db!: `${Precise.String}://${string}`;
+  readonly auth_provider!: SupportedProvider | (string & {});
+  readonly db!: `${string}://${string}`;
   readonly email!: string;
   readonly first_user!: boolean;
   readonly folder?: string;
@@ -135,6 +136,10 @@ export class AppData extends ActiveRecord<"AppData"> {
     return await collection?.set({
       ...store,
       ...this,
+      // NEVER SAVE SECRETS TO DATABASE!!
+      secret_key: undefined,
+      auth_client_secret: undefined,
+      db: undefined,
     }) ?? false;
   }
 

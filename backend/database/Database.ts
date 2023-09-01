@@ -1,28 +1,38 @@
-import type { Precise } from "../types.ts";
+// deno-lint-ignore-file ban-types
 import {
   ActiveCollection,
   type ActiveModel,
   type ActiveRecord,
   type CollectionName,
 } from "./ActiveRecord.ts";
-import type { DataSource } from "./DataSource.ts";
+import { DataSource } from "./DataSource.ts";
 import { DenoKvSource } from "./DenoKvSource.ts";
 
 export class Database<
   Models extends readonly ActiveModel[] = [],
-  Protocol extends Precise.String = Precise.String,
+  Protocol extends Protocols = "denokv",
 > {
   source: DataSource;
   collections = {} as CollectionMap<Models[number]>;
+  get readonly(): boolean {
+    return Readonly.some((p) => p === this.source.options.type);
+  }
 
   constructor(init?: DatabaseInit<Models, Protocol>) {
-    if (init?.connectionString) {
-      // TODO: For now, denokv is the only connection string implemented <shrug>; force it.
-      // deno-lint-ignore no-explicit-any
-      this.source = new DenoKvSource(init.connectionString as any);
-    } else {
-      this.source = new DenoKvSource("denokv://<DEFAULT>");
+    const { type } = init?.connectionString
+      ? DataSource.parse<Protocol>(init.connectionString)
+      : { type: undefined };
+
+    switch (type) {
+      case "denokv": {
+        this.source = new DenoKvSource(init!.connectionString as `denokv://`);
+        break;
+      }
+      default: {
+        this.source = new DenoKvSource(DEFAULT_CONN);
+      }
     }
+
     const collections = this.collections as Record<string, unknown>;
     for (const model of init?.models ?? []) {
       const collection = new ActiveCollection(model, this.source);
@@ -54,7 +64,7 @@ export class Database<
 
 export type DatabaseInit<
   Models extends readonly ActiveModel[] | undefined,
-  Protocol extends Precise.String = "denokv",
+  Protocol extends Protocols = "denokv",
 > = {
   connectionString?: `${Protocol}://${string}`;
   models?: Models;
@@ -65,8 +75,19 @@ type CollectionMap<Model extends ActiveModel | ActiveRecord> = {
 };
 type ExtractRecord<
   M extends ActiveModel | ActiveRecord,
-  N extends Precise.String,
+  N extends (string & {}),
 > =
   // deno-lint-ignore no-explicit-any
   | InstanceType<Extract<M, new (...args: any[]) => { collection: N }>>
   | Extract<M, { collection: N }>;
+
+type Protocols = typeof Protocols[number] | (string & {});
+const Protocols = [
+  "cockroach",
+  "denokv",
+  "git",
+  "markdown",
+  "postgres",
+] as const;
+const Readonly = ["markdown"] as const;
+const DEFAULT_CONN = "denokv://<DEFAULT>" as const;

@@ -1,5 +1,5 @@
 /// <reference lib="deno.unstable" />
-import { APP_DATA } from "../AppData.ts";
+import { APP_DATA } from "../constants.ts";
 import { APP_COLLECTION, IS_DENO_DEPLOY } from "../constants.ts";
 
 let mutex: Promise<Deno.Kv> | undefined;
