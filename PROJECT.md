@@ -6,13 +6,13 @@ This document lays out individual tasks for release.
 
 - [x] Generic Data Source system
 - [x] Deno KV Data Source driver
+- [x] AppData as a record
 - [ ] User MVP
   - [x] User record
   - [x] Identity record
   - [x] Author record
   - [x] Login API
   - [ ] Oauth logic
-  - [ ] TOTP API
   - [ ] Author profile HTML and API
 - [ ] Posts HTML and API
 - [ ] Home HTML and API
@@ -33,7 +33,7 @@ This document lays out individual tasks for release.
 
 - [ ] User advanced
   - [ ] Reader record
-  - [ ] AppData as a record
+  - [ ] TOTP API
   - [ ] Settings HTML and API
   - [ ] Reader profile and API
 - [ ] Additional plugins

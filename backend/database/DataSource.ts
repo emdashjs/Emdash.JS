@@ -60,9 +60,6 @@ export type Promised<T> = Promise<T> | T;
 
 /** An object formatted for use by the orm. */
 export type DataRecord<T = Precise.Value> = {
-  [P: string]: unknown;
-  [P: number]: unknown;
-} & {
   created: string;
   modified: string;
 } & T;

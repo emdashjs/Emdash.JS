@@ -1,17 +1,20 @@
-// deno-lint-ignore-file ban-types
+import { ActiveRecord } from "../database/ActiveRecord.ts";
 import {
   getStrengthOptions,
-  StrengthOptions,
-} from "./auth/isStrongPassword.ts";
-import type { PasswordAlgorithm, SecurityLevel } from "./auth/PasswordAes.ts";
+  type StrengthOptions,
+} from "../auth/isStrongPassword.ts";
+import type { PasswordAlgorithm, SecurityLevel } from "../auth/PasswordAes.ts";
 import type {
   AuthConfig,
   SupportedProvider,
   ThirdPartyProvider,
-} from "./auth/providers.ts";
+} from "../auth/providers.ts";
+import type { FunctionKeys, Precise } from "../types.ts";
 
-export class AppData {
-  constructor(appData: Partial<AppDataStore> = {}) {
+export class AppData extends ActiveRecord<"AppData"> {
+  constructor(appData?: AppDataStore) {
+    super({ ...appData, id: "AppData" });
+    appData = appData ?? {};
     const store = {} as AppDataStore;
     DATA.set(this, store);
     for (const key of KEYS) {
@@ -36,6 +39,10 @@ export class AppData {
     }
   }
 
+  get collection(): "AppData" {
+    return "AppData";
+  }
+
   /** Only required for Auth0 or Okta. */
   readonly auth_client_domain?: string;
   /** Required for any third-party provider. */
@@ -46,8 +53,9 @@ export class AppData {
   readonly auth_security?: SecurityLevel;
   /** Used only for internal auth provider */
   readonly auth_algorithm?: PasswordAlgorithm;
-  readonly auth_provider!: SupportedProvider | (string & {});
-  readonly email?: string;
+  readonly auth_provider!: SupportedProvider | Precise.String;
+  readonly db!: `${Precise.String}://${string}`;
+  readonly email!: string;
   readonly first_user!: boolean;
   readonly folder?: string;
   readonly name!: string;
@@ -57,7 +65,7 @@ export class AppData {
   readonly static!: string;
   readonly uuid!: string;
 
-  get authConfig(): AuthConfig {
+  authConfig(): AuthConfig {
     if (this.auth_provider !== "internal") {
       const config: AuthConfig = {
         type: this.auth_provider as ThirdPartyProvider,
@@ -75,7 +83,7 @@ export class AppData {
       }
       return config;
     } else {
-      const platform = this.platform;
+      const platform = AppData.platform;
       switch (platform.runtime) {
         case "deno-deploy":
         case "netlify-edge":
@@ -109,8 +117,9 @@ export class AppData {
     }
   }
 
-  get variables() {
-    return KEY_MAP;
+  async destroy(): Promise<boolean> {
+    const collection = ActiveRecord.getCollectionOf(AppData);
+    return await collection?.delete(this.id) ?? false;
   }
 
   merge(appData: Partial<AppDataStore>) {
@@ -120,7 +129,16 @@ export class AppData {
     }
   }
 
-  get platform() {
+  async save(): Promise<boolean> {
+    const collection = ActiveRecord.getCollectionOf(AppData);
+    const store = DATA.get(this)!;
+    return await collection?.set({
+      ...store,
+      ...this,
+    }) ?? false;
+  }
+
+  static get platform() {
     const awsLambda = Deno.env.get("AWS_LAMBDA_FUNCTION_NAME") !== undefined;
     const azureFunction =
       Deno.env.get("EXECUTION_CONTEXT_FUNCTIONNAME") !== undefined;
@@ -154,6 +172,10 @@ export class AppData {
       version: Deno.version,
     };
   }
+
+  static get env() {
+    return KEY_MAP;
+  }
 }
 
 // deno-lint-ignore no-explicit-any
@@ -161,11 +183,11 @@ declare let Netlify: any;
 
 type AppDataLike = Omit<
   AppData,
-  "merge" | "authConfig" | "platform" | "variables"
+  FunctionKeys<AppData> | keyof ActiveRecord
 >;
 
 type AppDataStore = {
-  -readonly [K in keyof AppDataLike]: AppData[K];
+  -readonly [K in keyof AppDataLike]?: AppData[K];
 };
 
 type AppDataKeyMap = {
@@ -176,14 +198,15 @@ const PRE = "EMDASH_" as const;
 const DATA = new WeakMap<AppData, AppDataStore>();
 const FALLBACK = {
   auth_provider: "internal",
+  db: "denokv://<DEFAULT>",
   first_user: true,
   name: "Emdash.js",
-  session_ttl: "7d",
-  static: "static",
-  uuid: "bab51817-3eac-4726-8d3b-0a57f886e8bf",
   password_rules: getStrengthOptions(
     "minLength:12;minLowercase:2;minUppercase:2;minNumbers:2;minSymbols:2",
   ),
+  session_ttl: "7d",
+  static: "static",
+  uuid: "bab51817-3eac-4726-8d3b-0a57f886e8bf",
 } satisfies AppDataStore;
 const KEY_MAP = {
   auth_algorithm: `${PRE}AUTH_ALGORITHM`,
@@ -192,6 +215,7 @@ const KEY_MAP = {
   auth_client_secret: `${PRE}AUTH_CLIENT_SECRET`,
   auth_provider: `${PRE}AUTH_PROVIDER`,
   auth_security: `${PRE}AUTH_SECURITY`,
+  db: `${PRE}DB`,
   email: `${PRE}EMAIL`,
   first_user: `${PRE}FIRST_USER`,
   folder: `${PRE}FOLDER`,
@@ -203,14 +227,14 @@ const KEY_MAP = {
   uuid: `${PRE}UUID`,
 } as const satisfies AppDataKeyMap;
 const KEYS = Object.keys(KEY_MAP) as (keyof typeof KEY_MAP)[];
-function isValue<T extends ({} | undefined)>(
+function isValue<T extends (Precise.Value | undefined)>(
   value: T,
 ): value is Exclude<T, undefined> {
   return typeof value !== "undefined";
 }
 function assignValue(
   key: string,
-  data: Record<string, {} | undefined>,
+  data: Record<string, Precise.Value | undefined>,
   // deno-lint-ignore no-explicit-any
   store: Record<string, any>,
 ) {
@@ -219,5 +243,3 @@ function assignValue(
     store[key] = value;
   }
 }
-
-export const APP_DATA = new AppData();

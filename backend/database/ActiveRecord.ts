@@ -35,6 +35,14 @@ export abstract class ActiveRecord<
     const col = recordCollection.get(this.collection as string);
     return await col?.delete(this.id, this.complexId) ?? false;
   }
+
+  static getCollectionOf<T extends ActiveModel>(
+    model: T,
+  ): ActiveCollection<InstanceType<T>> | undefined {
+    return recordCollection.get(
+      model.prototype.collection,
+    ) as ActiveCollection<InstanceType<T>>;
+  }
 }
 
 export type ActiveModel<

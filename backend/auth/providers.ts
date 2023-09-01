@@ -1,5 +1,5 @@
 import { DenoKvOauth } from "../../deps.ts";
-import { APP_DATA } from "../AppData.ts";
+import { APP_DATA } from "../constants.ts";
 import type { PasswordAlgorithm, SecurityLevel } from "./PasswordAes.ts";
 
 export type AuthConfig = {
@@ -44,7 +44,7 @@ export const SupportedProvider = [
 ] as const;
 
 export function createOauth2Client(origin: string): ProviderClient | undefined {
-  const config = APP_DATA.authConfig;
+  const config = APP_DATA.authConfig();
   const provider = config.type;
   if (config.type !== "internal") {
     switch (provider) {

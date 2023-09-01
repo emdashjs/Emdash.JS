@@ -8,7 +8,7 @@ import {
   timingSafeEqual,
 } from "../../deps.ts";
 import { hash as argon2Hash } from "https://deno.land/x/argontwo@0.1.1/mod.ts";
-import { APP_DATA } from "../AppData.ts";
+import { APP_DATA } from "../constants.ts";
 
 const randomLength = 16 as const;
 const decoder = new TextDecoder();

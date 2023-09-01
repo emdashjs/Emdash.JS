@@ -1,4 +1,4 @@
-import { APP_DATA } from "../AppData.ts";
+import { APP_DATA } from "../constants.ts";
 import { ActiveRecord } from "../database/ActiveRecord.ts";
 import { uuidv5 } from "../database/uuidv5.ts";
 import type { SupportedProvider } from "../auth/providers.ts";

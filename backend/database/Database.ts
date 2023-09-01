@@ -9,7 +9,7 @@ import type { DataSource } from "./DataSource.ts";
 import { DenoKvSource } from "./DenoKvSource.ts";
 
 export class Database<
-  Models extends ActiveModel[] = [],
+  Models extends readonly ActiveModel[] = [],
   Protocol extends Precise.String = Precise.String,
 > {
   source: DataSource;
@@ -53,7 +53,7 @@ export class Database<
 }
 
 export type DatabaseInit<
-  Models extends ActiveModel[] | undefined,
+  Models extends readonly ActiveModel[] | undefined,
   Protocol extends Precise.String = "denokv",
 > = {
   connectionString?: `${Protocol}://${string}`;
