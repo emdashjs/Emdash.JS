@@ -1,5 +1,5 @@
 /** @jsx h */
-import { h } from "../../../deps.ts";
+import { h } from "../../deps.ts";
 
 export function Css({ children }: { children?: string }) {
   children = Array.isArray(children) ? children[0] : children;
@@ -7,6 +7,7 @@ export function Css({ children }: { children?: string }) {
     ?.replace(/\n\s*|/gui, "")
     .replace(/\s+\{/gui, "{")
     .replace(/:\s+/gui, ":");
+
   return (
     <style>
       {children}
