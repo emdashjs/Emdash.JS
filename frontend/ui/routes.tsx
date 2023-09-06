@@ -38,7 +38,7 @@ uiRouter.get("/", (context) => {
   context.state.render.html(<App>Hello, world!</App>);
 });
 
-uiRouter.get("/admin/first_run", async (context) => {
+uiRouter.get("/user/first_run", async (context) => {
   await context.state.authorize("throw");
   context.state.render.html(() => (
     <App>
@@ -47,7 +47,7 @@ uiRouter.get("/admin/first_run", async (context) => {
   ));
 });
 
-uiRouter.get("/signin", (context) => {
+uiRouter.get("/user/signin", (context) => {
   context.state.render.html(() => (
     <App>
       <Signin />
