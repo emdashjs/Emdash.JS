@@ -4,15 +4,15 @@
 /// <reference lib="dom.asynciterable" />
 /// <reference lib="deno.ns" />
 import { h, Helmet, sanitizeHtml, transpile } from "../../deps.ts";
-import { App } from "./App.tsx";
-import { Server } from "../../backend/server/Server.ts";
-import { Signin } from "./page/Signin.tsx";
-import { FirstRun } from "./page/FirstRun.tsx";
+import { App } from "../components/App.tsx";
+import { ContextState, MainRouter, Server } from "../../backend/server/mod.ts";
 import { Marked, MarkedOptions } from "https://esm.sh/marked@7.0.1";
 import { markedHighlight } from "https://esm.sh/marked-highlight@2.0.4";
 import hljsImport from "https://esm.sh/highlight.js@11.8.0";
 import { DEFAULT_POST } from "../../backend/blog/Post.ts";
 import { preloadMDXEditor } from "./preloadMDXEditor.ts";
+import { userRouter } from "./user/routes.tsx";
+
 // deno-lint-ignore no-explicit-any
 const hljs = hljsImport as any;
 const m = new Marked(markedHighlight({
@@ -30,29 +30,14 @@ const m = new Marked(markedHighlight({
 async function marked(src: string, options?: MarkedOptions) {
   return await m.parse(src, { async: true, gfm: true, ...options }) ?? "";
 }
-export const uiRouter = Server.router();
+export const uiRouter = new MainRouter<ContextState>();
 // deno-lint-ignore no-explicit-any
 const HelmetAny = Helmet as any;
 
+uiRouter.merge(userRouter);
+
 uiRouter.get("/", (context) => {
   context.state.render.html(<App>Hello, world!</App>);
-});
-
-uiRouter.get("/user/first_run", async (context) => {
-  await context.state.authorize("throw");
-  context.state.render.html(() => (
-    <App>
-      <FirstRun />
-    </App>
-  ));
-});
-
-uiRouter.get("/user/signin", (context) => {
-  context.state.render.html(() => (
-    <App>
-      <Signin />
-    </App>
-  ));
 });
 
 uiRouter.get("/post/:slug(.*)", async (context) => {

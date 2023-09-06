@@ -1,5 +1,4 @@
-import { ContextState } from "../backend/server/ContextState.ts";
-import { MainRouter } from "../backend/server/MainRouter.ts";
+import { ContextState, MainRouter } from "../backend/server/mod.ts";
 import { apiRouter } from "./api/routes.ts";
 import { uiRouter } from "./ui/routes.tsx";
 

@@ -1,7 +1,7 @@
 /** @jsx h */
 import { h, Helmet } from "../../deps.ts";
 import { ComponentProps } from "../types.ts";
-import { Css } from "./components/Css.tsx";
+import { Css } from "./Css.tsx";
 
 // deno-lint-ignore no-explicit-any
 const HelmetAny = Helmet as any;
