@@ -66,13 +66,18 @@ export const postUser = Server.middleware(async (context) => {
     const dbTiming = context.state.timing.start("Database");
     switch (changeType) {
       case "newUser": {
+        const provider = APP_DATA.authConfig().type;
         const allowFirstUser = await context.state.core.allowFirstUser();
         const userType: User["collection"] =
           userJson.userType?.toLowerCase() === "author" || allowFirstUser
             ? "Author"
             : "Reader";
-        const identity = collections.Identity.newRecord({ id, userType });
-        if (APP_DATA.authConfig().type === "internal") {
+        const identity = collections.Identity.newRecord({
+          id,
+          userType,
+          provider,
+        });
+        if (provider === "internal") {
           identity.hash = await PasswordAes.hash(userJson.password);
         }
         const user = userType === "Author"

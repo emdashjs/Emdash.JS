@@ -107,6 +107,7 @@ export const callback = Server.middleware(async (context) => {
       sessionId,
       email: user.email!,
       userType: "Reader",
+      provider: provider.provider,
     });
     if (await context.state.core.allowFirstUser()) {
       identity.userType = "Author";
