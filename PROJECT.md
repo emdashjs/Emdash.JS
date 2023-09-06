@@ -11,7 +11,7 @@ This document lays out individual tasks for release.
   - [x] User record
   - [x] Identity record
   - [x] Author record
-  - [x] Login API
+  - [x] Sign-in API
   - [ ] Oauth logic
   - [ ] Author profile HTML and API
 - [ ] Posts HTML and API

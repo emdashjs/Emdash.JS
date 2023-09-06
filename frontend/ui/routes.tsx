@@ -6,7 +6,7 @@
 import { h, Helmet, sanitizeHtml, transpile } from "../../deps.ts";
 import { App } from "./App.tsx";
 import { Server } from "../../backend/server/Server.ts";
-import { Login } from "./page/Login.tsx";
+import { Signin } from "./page/Signin.tsx";
 import { FirstRun } from "./page/FirstRun.tsx";
 import { Marked, MarkedOptions } from "https://esm.sh/marked@7.0.1";
 import { markedHighlight } from "https://esm.sh/marked-highlight@2.0.4";
@@ -39,7 +39,7 @@ uiRouter.get("/", (context) => {
 });
 
 uiRouter.get("/admin/first_run", async (context) => {
-  await context.state.authenticate();
+  await context.state.authorize("throw");
   context.state.render.html(() => (
     <App>
       <FirstRun />
@@ -47,10 +47,10 @@ uiRouter.get("/admin/first_run", async (context) => {
   ));
 });
 
-uiRouter.get("/login", (context) => {
+uiRouter.get("/signin", (context) => {
   context.state.render.html(() => (
     <App>
-      <Login />
+      <Signin />
     </App>
   ));
 });
@@ -58,7 +58,7 @@ uiRouter.get("/login", (context) => {
 uiRouter.get("/post/:slug(.*)", async (context) => {
   const edit = context.request.url.searchParams.has("edit");
   if (edit) {
-    await context.state.authenticate();
+    await context.state.authorize("throw");
   }
   if (context.params.slug === DEFAULT_POST.slug) {
     const renderTime = context.state.timing.start("Render");

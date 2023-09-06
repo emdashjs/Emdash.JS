@@ -7,7 +7,7 @@ import { emailId } from "../../backend/models/helpers.ts";
 import { Server } from "../../backend/server/mod.ts";
 import { APP_DATA, HTTP_CODE } from "../../mod.ts";
 
-export const login = Server.middleware(async (context) => {
+export const signin = Server.middleware(async (context) => {
   const authConfig = APP_DATA.authConfig();
   if (authConfig.type === "internal") {
     const body = await context.state.request.formData();
@@ -51,7 +51,7 @@ export const login = Server.middleware(async (context) => {
   }
 });
 
-export const logout = Server.middleware(async (context) => {
+export const signout = Server.middleware(async (context) => {
   const authConfig = APP_DATA.authConfig();
   if (authConfig.type === "internal") {
     context.response.status = HTTP_CODE.REDIRECT.SEE_OTHER;

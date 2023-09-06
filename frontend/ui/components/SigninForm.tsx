@@ -1,11 +1,11 @@
 /** @jsx h */
 import { h } from "../../../deps.ts";
 
-export function LoginForm({ landing = "/" }: { landing?: string }) {
+export function SigninForm({ landing = "/" }: { landing?: string }) {
   return (
     <form
       className="pure-form pure-form-stacked"
-      action={`/api/login?landing=${landing}`}
+      action={`/api/signin?landing=${landing}`}
       method="post"
     >
       <fieldset>

@@ -1,13 +1,13 @@
 import { DEFAULT_POST } from "../../backend/blog/Post.ts";
 import { Server } from "../../backend/server/Server.ts";
-import { callback, login, logout } from "./login.ts";
+import { callback, signin, signout } from "./signin.ts";
 import { getPolicyPassword } from "./policy.ts";
 import { getUser, postUser } from "./user.ts";
 
 export const apiRouter = Server.router();
 apiRouter.prefix("/api");
-apiRouter.post("/signin", login);
-apiRouter.get("/signout", logout);
+apiRouter.post("/signin", signin);
+apiRouter.get("/signout", signout);
 apiRouter.get("/callback", callback);
 apiRouter.get("/policy/password", getPolicyPassword);
 apiRouter.get("/user/:id?", getUser);
