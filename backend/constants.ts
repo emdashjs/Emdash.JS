@@ -1,4 +1,7 @@
 import { AppData } from "./models/AppData.ts";
+import { MutableEnv } from "./server/MutableEnv.ts";
+
+MutableEnv.replaceReadonly();
 
 export const APP_DATA = new AppData();
 

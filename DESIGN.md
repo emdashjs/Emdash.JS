@@ -82,13 +82,13 @@ Data is stored in NoSQL collections as documents, with a primary key and an opti
 
 The app supports a limited number of data sources to balance flexibility with maintenance. These are configured using connection string schemes. The connection string should be kept private; an environment variable is suitable in most cases. Custom CA certificates are not supported.
 
-| Source      | Scheme                                                             |
-|-------------|--------------------------------------------------------------------|
-| CockroachDB | *Same as Postgres.*                                                |
-| Deno KV     | `denokv://[<DEFAULT> or working directory relative path]`          |
-| Git         | `git://[user@]host[:port]/path.git`                                |
-| Postgres    | `postgres://[user:password@]host[:port][path]?sslmode=require`     |
-| Markdown    | `markdown://[<DEFAULT> or working directory relative path]`        |
+| Source      | Scheme                                                               |
+|-------------|----------------------------------------------------------------------|
+| CockroachDB | *Same as Postgres.*                                                  |
+| Deno KV     | `denokv://[:default:, :memory:, or working directory relative path]` |
+| Git         | `git://[user@]host[:port]/path.git`                                  |
+| Postgres    | `postgres://[user:password@]host[:port][path]?sslmode=require`       |
+| Markdown    | `markdown://[:default: or working directory relative path]`          |
 
 #### Deno KV
 
