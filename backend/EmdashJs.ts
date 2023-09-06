@@ -1,6 +1,8 @@
+import { Server } from "./server/mod.ts";
 import { APP_DATA } from "./constants.ts";
 import { Database } from "./database/Database.ts";
-import { AppData, EmdashModels, models } from "./models/mod.ts";
+import { AppData, EmdashModels } from "./models/mod.ts";
+import { router } from "../frontend/routes.ts";
 
 export class EmdashJs {
   appData: AppData;
@@ -10,10 +12,15 @@ export class EmdashJs {
     this.appData = APP_DATA;
     this.database = new Database({
       connectionString: Deno.env.get(AppData.env.db) as `${string}://`,
-      models,
+      models: EmdashModels,
     });
   }
 
+  get canAuthenticate() {
+    return !this.database.readonly;
+  }
+
+  /** Initialize EmdashJS; must be called before starting the server. */
   async init(): Promise<this> {
     const appDataCol = this.database.getCollection("AppData");
     const record = await appDataCol.get("AppData") ?? appDataCol.newRecord({});
@@ -28,7 +35,15 @@ export class EmdashJs {
     return this;
   }
 
-  get canAuthenticate() {
-    return !this.database.readonly;
+  configure(object: Record<string, unknown>) {
+    this.appData.merge(object);
+  }
+
+  serve(port?: number) {
+    const server = new Server({
+      port: this.appData.port ?? port,
+      staticRoot: this.appData.static,
+    });
+    return server.noCache("/api").add(router).serve(this);
   }
 }

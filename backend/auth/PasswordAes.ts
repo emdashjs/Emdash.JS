@@ -314,6 +314,11 @@ export class PasswordAes {
     { algorithm = "pbkdf2", level = "LOW" }: PasswordAesOptions = {},
   ) {
     const secret = APP_DATA.secret_key || APP_DATA.uuid;
+    const appOptions = APP_DATA.authConfig();
+    if (appOptions.type === "internal") {
+      algorithm = appOptions.algorithm;
+      level = appOptions.level;
+    }
     this.#base = algorithm === "argon2"
       ? new Argon2Aes(secret, level)
       : algorithm === "bcrypt"

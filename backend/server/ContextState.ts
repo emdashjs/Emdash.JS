@@ -1,23 +1,26 @@
 import { Base64, Context, createHttpError } from "../../deps.ts";
 import { Renderer } from "./Renderer.ts";
-import { USER_BUILTIN } from "../auth/User.ts";
-import { AccessToken, SessionToken, User } from "../auth/mod.ts";
 import { ServerTiming } from "./ServerTiming.ts";
 import { ERROR, HTTP_CODE } from "../constants.ts";
-import { APP_DATA } from "../AppData.ts";
+import type { EmdashJs } from "../EmdashJs.ts";
+import type { Session, Token, User } from "../models/mod.ts";
+import { getSessionCookieName, PasswordAes } from "../auth/mod.ts";
+import { emailId, getUser } from "../models/helpers.ts";
 
 export class ContextState {
   #context: Context<ContextState>;
-  auth?: Auth;
-  session?: SessionToken;
+  core: EmdashJs;
+  auth: Auth;
+  session?: Session;
   user?: User;
   request: Request;
   render: Renderer;
   timing: ServerTiming;
 
   // deno-lint-ignore no-explicit-any
-  constructor(context: Context<any>) {
+  constructor(context: Context<any>, core: EmdashJs) {
     this.#context = context;
+    this.core = core;
     this.request = getRequest(this.#context);
     this.timing = ServerTiming.get(this.request);
     this.auth = getAuth(this.#context.request.headers.get("Authorization"));
@@ -25,49 +28,61 @@ export class ContextState {
     this.render = new Renderer(this.#context);
   }
 
+  get collections() {
+    return this.db.collections;
+  }
+
+  get db() {
+    return this.core.database;
+  }
+
   async init() {
-    this.session = await getSession(this.#context);
-    this.user = await getUser(this.auth ?? this.session);
+    this.session = await getSession(this.#context, this.core);
+    this.user = await getUserFrom(this.auth, this.session);
     return this;
   }
 
-  async authenticate(): Promise<boolean> {
-    if (!(APP_DATA.first_user && await User.count() === 0)) {
-      if (this.user && this.user.internal.state !== "disabled") {
-        let authenticated = false;
-        if (this.session) {
-          try {
-            const result = await this.session.authenticate(this.user);
-            authenticated = User.is(result, this.user);
-          } catch (error) {
-            // Skip NOT_AUTHENTICATED to try a password authentication.
-            if (error?.message !== ERROR.AUTH.NOT_AUTHENTICATED) {
-              throw handleAuthError(error);
+  async authorize(): Promise<boolean> {
+    const identities = this.core.database.getCollection("Identity");
+    const skipAuth = this.core.appData.first_user &&
+      await identities.count() === 0;
+    if (!skipAuth) {
+      const identity = this.session
+        ? await this.session.getIdentity()
+        : this.user
+        ? await await identities.get(this.user.id)
+        : undefined;
+      if (identity?.enabled) {
+        switch (this.auth.type) {
+          case "Basic": {
+            // Perform full authentication, fail if user is not internal
+            if (identity.provider === "internal") {
+              // Authenticate
+              if (
+                await PasswordAes.verify(this.auth.password, identity.hash!)
+              ) {
+                return true;
+              }
+            } else {
+              // Unauthorized
+            }
+            break;
+          }
+          case "Bearer": {
+            // TODO: api tokens; error for now.
+            // Unauthorized
+            break;
+          }
+          case "Session": {
+            if (this.session) {
+              return this.session.verify(identity);
+            } else {
+              // Unauthorized
             }
           }
         }
-        if (!authenticated && this.auth?.type === "Basic") {
-          try {
-            await this.user.authenticate(this.auth.password);
-            this.session = new SessionToken();
-            await this.session.createToken(this.user);
-            authenticated = true;
-          } catch (error) {
-            throw handleAuthError(error);
-          }
-        }
-        if (!authenticated && this.auth?.type === "Bearer") {
-          try {
-            await this.auth.bearer.authenticate(this.auth.token);
-            authenticated = true;
-          } catch (error) {
-            throw handleAuthError(error);
-          }
-        }
-        if (!authenticated) {
-          throw handleAuthError();
-        }
       } else {
+        // Unauthorized
         throw createHttpError(
           HTTP_CODE.AUTH.FORBIDDEN,
           ERROR.AUTH.FORBIDDEN,
@@ -77,27 +92,33 @@ export class ContextState {
     return true;
   }
 
-  static async create(context: Context, next: () => Promise<unknown>) {
-    context.state = await new ContextState(context).init();
-    await next();
+  static create(core: EmdashJs) {
+    return async (context: Context, next: () => Promise<unknown>) => {
+      context.state = await new ContextState(context, core).init();
+      await next();
+    };
   }
 }
 
-export type Auth = BasicAuth | BearerAuth;
+export type Auth = BasicAuth | BearerAuth | SessionAuth;
+/** Future implementation */
 export type BearerAuth = {
   type: "Bearer";
   token: string;
-  bearer: AccessToken;
+  bearer?: Token;
 };
 export type BasicAuth = {
   type: "Basic";
   email: string;
   password: string;
 };
+export type SessionAuth = {
+  type: "Session";
+};
 
 const decoder = new TextDecoder();
 
-function getAuth(raw?: string | null): Auth | undefined {
+function getAuth(raw?: string | null): Auth {
   if (raw) {
     if (raw.toLowerCase().startsWith("basic ")) {
       const base64 = raw.slice(5).trim();
@@ -113,14 +134,16 @@ function getAuth(raw?: string | null): Auth | undefined {
       }
     }
     if (raw.toLowerCase().startsWith("bearer ")) {
+      // TODO: Long-lived api tokens
       const token = raw.slice(6).trim();
       return {
         type: "Bearer",
         token,
-        bearer: AccessToken.fromToken(token),
+        bearer: undefined,
       };
     }
   }
+  return { type: "Session" };
 }
 
 function getRequest(context: Context): Request {
@@ -129,29 +152,29 @@ function getRequest(context: Context): Request {
   return request;
 }
 
-async function getSession(context: Context) {
-  const token = await context.cookies.get(SessionToken.COOKIE_NAME);
-  if (token) {
-    const session = SessionToken.fromToken(token);
-    return session;
+async function getSession(context: Context, core: EmdashJs) {
+  const cookieName = await getSessionCookieName(context.request.url.href);
+  const sessionId = await context.cookies.get(cookieName);
+  if (sessionId) {
+    const col = core.database.getCollection("Session");
+    return await col.get(sessionId) ?? undefined;
   }
 }
 
-async function getUser(auth?: Auth | SessionToken) {
-  if (auth) {
+async function getUserFrom(auth: Auth, session?: Session) {
+  if (auth.type === "Session") {
+    return await session?.getUser();
+  } else {
     const userId = auth.type === "Bearer"
-      ? auth.bearer.userId
-      : auth.type === "Basic"
-      ? User.id(auth.email)
-      : auth.userId;
-    const user = await User.get(userId);
-    if (!User.is(user, USER_BUILTIN.NOT_EXIST)) {
-      return user;
+      ? auth.bearer?.userId
+      : emailId(auth.email);
+    if (userId) {
+      return await getUser(userId);
     }
   }
 }
 
-// deno-lint-ignore no-explicit-any
+/* // deno-lint-ignore no-explicit-any
 function handleAuthError(error?: any) {
   Error.captureStackTrace;
   if (!error || error?.message === ERROR.AUTH.NOT_AUTHENTICATED) {
@@ -166,4 +189,4 @@ function handleAuthError(error?: any) {
     ERROR.SERVER.INTERNAL,
     { cause: error },
   );
-}
+} */

@@ -1,16 +1,15 @@
-import { APP_DATA } from "../constants.ts";
 import { ActiveRecord } from "../database/ActiveRecord.ts";
-import { uuidv5 } from "../database/uuidv5.ts";
+import { emailId } from "./helpers.ts";
 
-export class User<T extends string = string> extends ActiveRecord<T> {
+class UserBase<T extends string = string> extends ActiveRecord<T> {
   email!: string;
   firstName!: string;
   lastName!: string;
 
-  constructor(record: Partial<User<T>>) {
+  constructor(record: Partial<UserBase<T>>) {
     super({
       ...record,
-      id: record.id ? record.id : uuidv5(record.email!, APP_DATA.uuid),
+      id: record.id ? record.id : emailId(record.email!),
     });
   }
 
@@ -23,10 +22,19 @@ export class User<T extends string = string> extends ActiveRecord<T> {
   }
 }
 
-export class Author extends User<"Author"> {
+export type User = Author | Reader;
+export type UserModel = typeof Author | typeof Reader;
+
+export class Author extends UserBase<"Author"> {
   bio!: string;
 
   get collection(): "Author" {
     return "Author";
+  }
+}
+
+export class Reader extends UserBase<"Reader"> {
+  get collection(): "Reader" {
+    return "Reader";
   }
 }

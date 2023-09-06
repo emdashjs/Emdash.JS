@@ -1,9 +1,5 @@
-import { Server } from "./backend/server/Server.ts";
-import { router } from "./frontend/routes.ts";
+import { EmdashJs } from "./backend/EmdashJs.ts";
 
-const server = new Server();
+const emdashJs = new EmdashJs();
 
-server
-  .noCache("/api")
-  .add(router)
-  .serve();
+emdashJs.serve();

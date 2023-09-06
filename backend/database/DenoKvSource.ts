@@ -21,7 +21,16 @@ export class DenoKvSource
     if (this.options.type !== DRIVER_TYPE) {
       throw new TypeError("Not a Deno KV data source");
     }
-    this.#driver = new DenoKvDriver(Deno.openKv(), this.options.type);
+    const { options } = this.options;
+    const kv_path = options.trim();
+    if (kv_path === ":memory:" || (!kv_path.includes(":") && kv_path !== "")) {
+      const path = kv_path === ":memory:" ? kv_path : `./${kv_path}`;
+      this.#driver = new DenoKvDriver(Deno.openKv(path), this.options.type);
+      Deno.env.set("KV_PATH", path);
+    } else {
+      this.#driver = new DenoKvDriver(Deno.openKv(), this.options.type);
+      Deno.env.delete("KV_PATH");
+    }
   }
   get driver(): DenoKvDriver {
     return this.#driver;

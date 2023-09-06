@@ -1,6 +1,24 @@
-import { DenoKvOauth } from "../../deps.ts";
 import { APP_DATA } from "../constants.ts";
 import type { PasswordAlgorithm, SecurityLevel } from "./PasswordAes.ts";
+
+const DenoKvOauthImport =
+  "https://deno.land/x/deno_kv_oauth@v0.4.0/mod.ts" as const;
+let DenoKvOauth:
+  typeof import("https://deno.land/x/deno_kv_oauth@v0.4.0/mod.ts");
+const DenoKvOauthCoreImport =
+  "https://deno.land/x/deno_kv_oauth@v0.4.0/src/core.ts" as const;
+let DenoKvOauthCore:
+  typeof import("https://deno.land/x/deno_kv_oauth@v0.4.0/src/core.ts");
+
+export async function getSessionCookieName(requestUrl: string) {
+  if (!DenoKvOauthCore) {
+    DenoKvOauth = await import(DenoKvOauthCoreImport);
+  }
+  return DenoKvOauthCore.getCookieName(
+    DenoKvOauthCore.SITE_COOKIE_NAME,
+    DenoKvOauthCore.isSecure(requestUrl),
+  );
+}
 
 export type AuthConfig = {
   type: ThirdPartyProvider;
@@ -43,10 +61,89 @@ export const SupportedProvider = [
   ...ThirdPartyProvider,
 ] as const;
 
-export function createOauth2Client(origin: string): ProviderClient | undefined {
+export class OAuthProvider {
+  provider!: ThirdPartyProvider;
+  client!: Oauth2Client;
+  origin: string;
+  constructor(origin: string) {
+    this.origin = origin;
+  }
+
+  async init() {
+    if (!this.client) {
+      const { client, provider } = (await createOauth2Client(this.origin))!;
+      this.client = client;
+      this.provider = provider;
+    }
+    return this;
+  }
+
+  async callback(
+    { request, redirectUri }: ProviderRedirect,
+  ): Promise<Oauth2Callback> {
+    if (!DenoKvOauth) {
+      DenoKvOauth = await import(DenoKvOauthImport);
+    }
+    const { accessToken, response, sessionId } = await DenoKvOauth
+      .handleCallback(
+        request,
+        this.client,
+        redirectUri,
+      );
+    const user = await getUser(this.provider, accessToken);
+    return {
+      user,
+      response,
+      sessionId,
+    };
+  }
+
+  async getSessionAccessToken(idOrRequest: Request | string) {
+    const sessionId = typeof idOrRequest === "string"
+      ? idOrRequest
+      : await this.getSessionId(idOrRequest);
+    if (sessionId) {
+      return DenoKvOauth.getSessionAccessToken(this.client, sessionId);
+    }
+    return null;
+  }
+
+  async getSessionId(request: Request) {
+    if (!DenoKvOauth) {
+      DenoKvOauth = await import(DenoKvOauthImport);
+    }
+    return DenoKvOauth.getSessionId(request);
+  }
+
+  async signIn(request: Request) {
+    if (!DenoKvOauth) {
+      DenoKvOauth = await import(DenoKvOauthImport);
+    }
+    return await DenoKvOauth.signIn(request, this.client);
+  }
+
+  async signOut({ request, redirectUri }: ProviderRedirect) {
+    if (!DenoKvOauth) {
+      DenoKvOauth = await import(DenoKvOauthImport);
+    }
+    return DenoKvOauth.signOut(request, redirectUri);
+  }
+}
+
+type ProviderRedirect = {
+  request: Request;
+  redirectUri?: string;
+};
+
+async function createOauth2Client(
+  origin: string,
+): Promise<ProviderClient | undefined> {
   const config = APP_DATA.authConfig();
   const provider = config.type;
   if (config.type !== "internal") {
+    if (!DenoKvOauth) {
+      DenoKvOauth = await import(DenoKvOauthImport);
+    }
     switch (provider) {
       case "auth0": {
         const oauth2 = createOauth2Config(origin, provider, config);
@@ -131,26 +228,6 @@ export function createOauth2Client(origin: string): ProviderClient | undefined {
       }
     }
   }
-}
-
-export async function handleOauth2Callback(
-  { request, oauth2: { client, provider }, redirectUri }: {
-    request: Request;
-    oauth2: ProviderClient;
-    redirectUri?: string;
-  },
-): Promise<Oauth2Callback> {
-  const { accessToken, response, sessionId } = await DenoKvOauth.handleCallback(
-    request,
-    client,
-    redirectUri,
-  );
-  const user = await getUser(provider, accessToken);
-  return {
-    user,
-    response,
-    sessionId,
-  };
 }
 
 export type Oauth2Callback = {

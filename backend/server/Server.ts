@@ -6,19 +6,20 @@ import {
   Router,
   RouterContext,
 } from "../../deps.ts";
-import { APP_DATA } from "../AppData.ts";
-import { SessionToken } from "../auth/SessionToken.ts";
+import { getSessionCookieName } from "../auth/mod.ts";
 import { MemoryCache } from "./Cache.ts";
 import { ContextState } from "./ContextState.ts";
 import { FakeConn } from "./FakeConn.ts";
 import { MainRouter } from "./MainRouter.ts";
 import { ServerTiming } from "./ServerTiming.ts";
+import type { EmdashJs } from "../EmdashJs.ts";
 
 export type ServerOptions = {
+  staticRoot?: string;
   cache?: Cache;
   useCache?: boolean;
-  useStatic?: boolean;
 } & Deno.ServeOptions;
+
 export class Server {
   cache: Cache;
   app: Application<ContextState>;
@@ -29,7 +30,14 @@ export class Server {
   #noCache: string[];
 
   constructor(options?: ServerOptions) {
-    this.cache = options?.cache ?? new MemoryCache();
+    this.#options = {
+      ...options,
+      cache: options?.cache ?? new MemoryCache(),
+      useCache: typeof options?.cache === "object" ||
+        (options?.useCache ?? true),
+      staticRoot: options?.staticRoot ?? "/static",
+    };
+    this.cache = this.#options.cache!;
     this.router = new MainRouter<ContextState>();
     this.#routes = new Set();
     this.#noCache = [];
@@ -37,12 +45,6 @@ export class Server {
       contextState: "empty",
       state: {} as ContextState,
     });
-    this.#options = {
-      ...options,
-      useCache: typeof options?.cache === "object" ||
-        (options?.useCache ?? true),
-      useStatic: options?.useStatic ?? true,
-    };
     this.#serveOptions = {
       hostname: options?.hostname ?? "127.0.0.1",
       onError: options?.onError,
@@ -71,7 +73,7 @@ export class Server {
   #useStatic = async (context: Context<ContextState>) => {
     const { pathname } = context.request.url;
     await context.send({
-      root: Server.STATIC_ROOT,
+      root: this.#options.staticRoot!,
       path: pathname.startsWith("/static") ? pathname.slice(7) : pathname,
     });
   };
@@ -83,15 +85,18 @@ export class Server {
     const cacheMeasure = context.state.timing.start("Cache");
     const cached = await this.cache.match(context.state.request);
     if (cached) {
+      const sessionCookie = await getSessionCookieName(
+        context.state.request.url,
+      );
       const response = cached.clone();
       context.response.body = response.body;
       context.response.headers = response.headers;
       context.response.status = response.status;
-      await context.cookies.delete(SessionToken.COOKIE_NAME);
+      await context.cookies.delete(sessionCookie);
       if (context.state.session) {
         await context.cookies.set(
-          SessionToken.COOKIE_NAME,
-          context.state.session.token,
+          sessionCookie,
+          context.state.session.id,
         );
       }
       cacheMeasure.finish();
@@ -118,12 +123,10 @@ export class Server {
     return this;
   }
 
-  serve() {
-    if (this.#options.useStatic) {
-      this.router.get("/static/(.*)", this.#useStatic);
-    }
+  serve(core: EmdashJs) {
+    this.router.get("/static/(.*)", this.#useStatic);
     this.router.merge([...this.#routes]);
-    this.app.use(ContextState.create);
+    this.app.use(ContextState.create(core));
     if (this.#options.useCache) {
       this.app.use(this.#useCache);
     }
@@ -133,9 +136,6 @@ export class Server {
   }
 
   static REDIRECT_BACK: typeof REDIRECT_BACK = REDIRECT_BACK;
-  static STATIC_ROOT = `${Deno.cwd()}${
-    APP_DATA.static.startsWith("/") ? APP_DATA.static : `/${APP_DATA.static}`
-  }`;
 
   static middleware(
     middleware: (

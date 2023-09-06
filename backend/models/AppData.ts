@@ -61,6 +61,7 @@ export class AppData extends ActiveRecord<"AppData"> {
   readonly folder?: string;
   readonly name!: string;
   readonly password_rules!: StrengthOptions;
+  readonly port?: number;
   readonly secret_key?: string;
   readonly session_ttl!: string;
   readonly static!: string;
@@ -226,6 +227,7 @@ const KEY_MAP = {
   folder: `${PRE}FOLDER`,
   name: `${PRE}NAME`,
   password_rules: `${PRE}PASSWORD_RULES`,
+  port: `${PRE}PORT`,
   secret_key: `${PRE}SECRET_KEY`,
   session_ttl: `${PRE}SESSION_TTL`,
   static: `${PRE}STATIC`,

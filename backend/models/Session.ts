@@ -1,5 +1,6 @@
 import { APP_DATA } from "../constants.ts";
 import { ActiveRecord } from "../database/ActiveRecord.ts";
+import { getUser } from "./helpers.ts";
 import type { Identity } from "./mod.ts";
 
 export class Session extends ActiveRecord<"Session"> {
@@ -31,22 +32,31 @@ export class Session extends ActiveRecord<"Session"> {
     return this.complexId;
   }
 
-  authenticate(identity: Identity): boolean {
+  verify(identity: Identity): boolean {
     return !this.expired && this.id === identity.sessionId &&
       this.identityId === identity.id;
-  }
-
-  async refresh(identity: Identity): Promise<void> {
-    if (this.authenticate(identity)) {
-      this.expiresAt = new Date(Date.now() + Session.ttl()).toISOString();
-    } else {
-      await this.expire();
-    }
   }
 
   async expire() {
     this.expiresAt = new Date(Date.now() - Session.ttl()).toISOString();
     await this.destroy();
+  }
+
+  async getIdentity() {
+    const identities = ActiveRecord.getCollectionOf<Identity>("Identity");
+    return await identities?.get(this.identityId) ?? undefined;
+  }
+
+  getUser() {
+    return getUser(this.userId);
+  }
+
+  async refresh(identity: Identity): Promise<void> {
+    if (this.verify(identity)) {
+      this.expiresAt = new Date(Date.now() + Session.ttl()).toISOString();
+    } else {
+      await this.expire();
+    }
   }
 
   static ttl(): number {

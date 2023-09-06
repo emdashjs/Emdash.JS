@@ -1,4 +1,4 @@
-// deno-lint-ignore-file no-empty-interface
+// deno-lint-ignore-file no-empty-interface ban-types
 import type { Precise } from "../types.ts";
 import type { Awaiterable, DataRecord, DataSource } from "./DataSource.ts";
 
@@ -36,18 +36,25 @@ export abstract class ActiveRecord<
     return await col?.delete(this.id, this.complexId) ?? false;
   }
 
-  static getCollectionOf<T extends ActiveModel>(
-    model: T,
-  ): ActiveCollection<InstanceType<T>> | undefined {
-    return recordCollection.get(
-      model.prototype.collection,
-    ) as ActiveCollection<InstanceType<T>>;
+  static getCollectionOf<T extends ActiveModel | ActiveRecord>(
+    model: T | CollectionName<T>,
+  ): ActiveCollection<InstanceOf<T>> | undefined {
+    const collection: string = typeof model === "string"
+      ? model
+      : "prototype" in model
+      ? model.prototype.collection
+      : model.collection;
+    return recordCollection.get(collection) as ActiveCollection<
+      InstanceOf<T>
+    >;
   }
 }
 
 export type ActiveModel<
   Record extends ActiveRecord = ActiveRecord,
 > = new (record: Precise.Value) => Record;
+export type InstanceOf<Model extends ActiveModel | ActiveRecord> = Model extends
+  ActiveModel<infer Record> ? Record : Model;
 export type CollectionName<Model extends ActiveModel | ActiveRecord> =
   Model extends ActiveModel<infer Record>
     ? Record extends ActiveRecord<infer Name> ? Name
@@ -93,6 +100,11 @@ export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
   newRecord(data: Partial<T>): T {
     const record = new this.model(data) as T;
     return record;
+  }
+
+  async count() {
+    const stats = await this.stats();
+    return stats.recordCount;
   }
 
   async create() {
