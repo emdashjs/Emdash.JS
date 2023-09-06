@@ -20,6 +20,11 @@ export class EmdashJs {
     return !this.database.readonly;
   }
 
+  async allowFirstUser() {
+    return this.appData.first_user &&
+      await this.database.collections.Identity.count() === 0;
+  }
+
   /** Initialize EmdashJS; must be called before starting the server. */
   async init(): Promise<this> {
     const appDataCol = this.database.getCollection("AppData");

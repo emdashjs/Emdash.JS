@@ -48,9 +48,7 @@ export class ContextState {
 
   async authorize(throwError?: boolean | "throw"): Promise<boolean> {
     const identities = this.core.database.getCollection("Identity");
-    const skipAuth = this.core.appData.first_user &&
-      await identities.count() === 0;
-    if (skipAuth) {
+    if (await this.core.allowFirstUser()) {
       return true;
     } else {
       const identity = this.session

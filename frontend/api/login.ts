@@ -106,9 +106,10 @@ export const callback = Server.middleware(async (context) => {
       id,
       sessionId,
       email: user.email!,
+      userType: "Reader",
     });
-    await identity.save();
-    if (APP_DATA.first_user && await collections.Identity.count() === 0) {
+    if (await context.state.core.allowFirstUser()) {
+      identity.userType = "Author";
       const author = collections.Author.newRecord({
         id,
         email: user.email!,
@@ -125,6 +126,7 @@ export const callback = Server.middleware(async (context) => {
       });
       await reader.save();
     }
+    await identity.save();
   }
 
   await session.save();

@@ -3,7 +3,16 @@ import { ActiveRecord } from "../database/ActiveRecord.ts";
 import { uuidv5 } from "../database/uuidv5.ts";
 import type { Author, Reader, User } from "./User.ts";
 
-export async function getUser(userId: string): Promise<User | undefined> {
+export async function getUser(
+  userId: string,
+  userType?: User["collection"],
+): Promise<User | undefined> {
+  // Fast path.
+  if (userType) {
+    const users = ActiveRecord.getCollectionOf<Author | Reader>(userType);
+    return await users?.get(userId) ?? undefined;
+  }
+
   const authors = ActiveRecord.getCollectionOf<Author>("Author");
   const readers = ActiveRecord.getCollectionOf<Reader>("Reader");
   return await authors?.get(userId) ??

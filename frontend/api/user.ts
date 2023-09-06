@@ -2,9 +2,9 @@ import { createHttpError } from "../../deps.ts";
 import { ERROR, HTTP_CODE } from "../../backend/constants.ts";
 import { Server } from "../../backend/server/mod.ts";
 import { emailId } from "../../backend/models/helpers.ts";
-import { Author } from "../../backend/models/mod.ts";
 import { APP_DATA } from "../../mod.ts";
 import { PasswordAes } from "../../backend/auth/PasswordAes.ts";
+import { Author, type User } from "../../backend/models/mod.ts";
 
 export const getUser = Server.middleware(async (context) => {
   await context.state.authorize("throw");
@@ -66,11 +66,16 @@ export const postUser = Server.middleware(async (context) => {
     const dbTiming = context.state.timing.start("Database");
     switch (changeType) {
       case "newUser": {
-        const identity = collections.Identity.newRecord({ id });
+        const allowFirstUser = await context.state.core.allowFirstUser();
+        const userType: User["collection"] =
+          userJson.userType?.toLowerCase() === "author" || allowFirstUser
+            ? "Author"
+            : "Reader";
+        const identity = collections.Identity.newRecord({ id, userType });
         if (APP_DATA.authConfig().type === "internal") {
           identity.hash = await PasswordAes.hash(userJson.password);
         }
-        const user = userJson.type?.toLowerCase() === "author"
+        const user = userType === "Author"
           ? collections.Author.newRecord({ id })
           : collections.Reader.newRecord({ id });
         for (const field of Author.allowedFields) {
