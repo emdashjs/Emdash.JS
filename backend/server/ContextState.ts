@@ -1,10 +1,14 @@
 import { Base64, Context, createHttpError } from "../../deps.ts";
 import { Renderer } from "./Renderer.ts";
 import { ServerTiming } from "./ServerTiming.ts";
-import { ERROR, HTTP_CODE } from "../constants.ts";
+import { APP_DATA, ERROR, HTTP_CODE } from "../constants.ts";
 import type { EmdashJs } from "../EmdashJs.ts";
 import type { Session, Token, User } from "../models/mod.ts";
-import { getSessionCookieName, PasswordAes } from "../auth/mod.ts";
+import {
+  getSessionCookieName,
+  OAuthProvider,
+  PasswordAes,
+} from "../auth/mod.ts";
 import { emailId, getUser } from "../models/helpers.ts";
 
 export class ContextState {
@@ -42,11 +46,13 @@ export class ContextState {
     return this;
   }
 
-  async authorize(): Promise<boolean> {
+  async authorize(throwError?: boolean | "throw"): Promise<boolean> {
     const identities = this.core.database.getCollection("Identity");
     const skipAuth = this.core.appData.first_user &&
       await identities.count() === 0;
-    if (!skipAuth) {
+    if (skipAuth) {
+      return true;
+    } else {
       const identity = this.session
         ? await this.session.getIdentity()
         : this.user
@@ -56,6 +62,7 @@ export class ContextState {
         switch (this.auth.type) {
           case "Basic": {
             // Perform full authentication, fail if user is not internal
+            // Basic authentication is only supported for internal users
             if (identity.provider === "internal") {
               // Authenticate
               if (
@@ -63,8 +70,6 @@ export class ContextState {
               ) {
                 return true;
               }
-            } else {
-              // Unauthorized
             }
             break;
           }
@@ -75,21 +80,34 @@ export class ContextState {
           }
           case "Session": {
             if (this.session) {
-              return this.session.verify(identity);
-            } else {
-              // Unauthorized
+              if (
+                APP_DATA.authConfig().type === "internal" &&
+                this.session.verify(identity)
+              ) {
+                return true;
+              } else {
+                const { origin } = this.#context.request.url;
+                const provider = await new OAuthProvider(origin).init();
+                const token = await provider.getSessionAccessToken(
+                  this.session.id,
+                );
+                if (
+                  token !== null && token !== undefined &&
+                  token.trim() !== ""
+                ) {
+                  return true;
+                }
+              }
             }
+            break;
           }
         }
-      } else {
-        // Unauthorized
-        throw createHttpError(
-          HTTP_CODE.AUTH.FORBIDDEN,
-          ERROR.AUTH.FORBIDDEN,
-        );
       }
     }
-    return true;
+    if (throwError) {
+      throw handleAuthError();
+    }
+    return false;
   }
 
   static create(core: EmdashJs) {
@@ -174,9 +192,8 @@ async function getUserFrom(auth: Auth, session?: Session) {
   }
 }
 
-/* // deno-lint-ignore no-explicit-any
+// deno-lint-ignore no-explicit-any
 function handleAuthError(error?: any) {
-  Error.captureStackTrace;
   if (!error || error?.message === ERROR.AUTH.NOT_AUTHENTICATED) {
     return createHttpError(
       HTTP_CODE.AUTH.NOT_AUTHENTICATED,
@@ -189,4 +206,4 @@ function handleAuthError(error?: any) {
     ERROR.SERVER.INTERNAL,
     { cause: error },
   );
-} */
+}

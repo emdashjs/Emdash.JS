@@ -1,19 +1,29 @@
-import { createHttpError } from "https://deno.land/std@0.193.0/http/http_errors.ts";
-import { User, USER_BUILTIN, UserJson } from "../../backend/auth/mod.ts";
+import { createHttpError } from "../../deps.ts";
 import { ERROR, HTTP_CODE } from "../../backend/constants.ts";
 import { Server } from "../../backend/server/mod.ts";
+import { emailId } from "../../backend/models/helpers.ts";
+import { Author } from "../../backend/models/mod.ts";
+import { APP_DATA } from "../../mod.ts";
+import { PasswordAes } from "../../backend/auth/PasswordAes.ts";
 
 export const getUser = Server.middleware(async (context) => {
-  await context.state.authenticate();
-  const id = context.params.id || context.request.url.searchParams.get("id") ||
+  await context.state.authorize("throw");
+  let id = context.params.id ||
+    context.request.url.searchParams.get("id") ||
     undefined;
   if (id) {
+    if (id.includes("@")) {
+      id = emailId(id);
+    }
+    const { collections } = context.state;
     const dbTiming = context.state.timing.start("Database");
-    const user = await User.get(id);
+    const identity = await collections.Identity.get(id);
+    const user = await identity?.getUser();
     dbTiming.finish();
-    if (!User.is(user, USER_BUILTIN.NOT_EXIST)) {
+    if (user) {
       context.state.timing.start("Render");
       context.state.render.json(user);
+      return;
     }
   }
   throw createHttpError(
@@ -23,60 +33,84 @@ export const getUser = Server.middleware(async (context) => {
 });
 
 export const postUser = Server.middleware(async (context) => {
-  await context.state.authenticate();
-  // deno-lint-ignore no-explicit-any
-  function assignUser(user1: User, user2: any) {
-    for (const key of Object.keys(user1)) {
-      const value = user2[key];
-      if (value !== undefined) {
-        // deno-lint-ignore no-explicit-any
-        (user1 as any)[key] = value;
-      }
-    }
-  }
+  await context.state.authorize("throw");
+  const { collections } = context.state;
   const contentType = context.request.headers.get("content-type")?.trim()
     .toLowerCase();
   const formTypes = [
     "application/x-www-form-urlencoded",
     "multipart/form-data",
   ];
-  let userJson = {} as UserJson;
+  // deno-lint-ignore no-explicit-any
+  let userJson = {} as Record<string, any>;
   if (contentType && formTypes.some((t) => contentType.startsWith(t))) {
     const formData = await context.state.request.formData();
     formData.forEach((rawValue, rawKey) => {
-      const key = rawKey as Exclude<keyof UserJson, undefined>;
-      if (key !== "type" && typeof rawValue === "string") {
+      const key = rawKey;
+      if (key !== "collection" && key !== "id") {
         userJson[key] = rawValue;
       }
     });
   } else {
     userJson = await context.state.request.json();
   }
-  if (typeof userJson.password === "string") {
-    try {
-      const user = await User.create(userJson, userJson.password);
-      assignUser(user, userJson);
-      await user.set();
-      // TODO: Redirect on formdata submission? To where?
-      context.state.render.json(user);
-    } catch (error) {
-      throw createHttpError(
-        error?.message === ERROR.AUTH.PASSWORD_STRENGTH
-          ? HTTP_CODE.AUTH.PASSWORD_STRENGTH
-          : HTTP_CODE.SERVER.INTERNAL,
-        `${error?.message}`,
-      );
+  const emailOrId: string | undefined = context.params.id || userJson.id ||
+    userJson.email;
+  if (emailOrId) {
+    const id = emailOrId.includes("@") ? emailId(emailOrId) : emailOrId;
+    const changeType = !context.params.id
+      ? "newUser" as const
+      : userJson.newPassword
+      ? "newPassword" as const
+      : "updateUser" as const;
+    const dbTiming = context.state.timing.start("Database");
+    switch (changeType) {
+      case "newUser": {
+        const identity = collections.Identity.newRecord({ id });
+        if (APP_DATA.authConfig().type === "internal") {
+          identity.hash = await PasswordAes.hash(userJson.password);
+        }
+        const user = userJson.type?.toLowerCase() === "author"
+          ? collections.Author.newRecord({ id })
+          : collections.Reader.newRecord({ id });
+        for (const field of Author.allowedFields) {
+          user[field] = userJson[field];
+        }
+        await identity.save();
+        await user.save();
+        context.state.render.json(user);
+        return;
+      }
+      case "newPassword": {
+        const identity = await collections.Identity.get(id);
+        if (identity) {
+          identity.hash = await PasswordAes.hash(userJson.newPassword);
+          await identity.save();
+          context.state.render.json(await identity.getUser());
+          return;
+        }
+        break;
+      }
+      case "updateUser": {
+        const identity = await collections.Identity.get(id);
+        if (identity) {
+          const user = await identity.getUser();
+          if (user) {
+            for (const field of Author.allowedFields) {
+              user[field] = userJson[field];
+            }
+            await user.save();
+            context.state.render.json(user);
+            return;
+          }
+        }
+        break;
+      }
     }
-  } else {
-    const user = await User.get(userJson.email);
-    if (User.is(user, USER_BUILTIN.NOT_EXIST)) {
-      throw createHttpError(
-        HTTP_CODE.RESOURCE.NOT_FOUND,
-        ERROR.RESOURCE.NOT_FOUND,
-      );
-    }
-    assignUser(user, userJson);
-    await user.set();
-    context.state.render.json(user);
+    dbTiming.finish();
   }
+  throw createHttpError(
+    HTTP_CODE.RESOURCE.NOT_FOUND,
+    ERROR.RESOURCE.NOT_FOUND,
+  );
 });

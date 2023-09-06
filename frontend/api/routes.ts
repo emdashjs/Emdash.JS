@@ -8,7 +8,6 @@ export const apiRouter = Server.router();
 apiRouter.prefix("/api");
 apiRouter.post("/signin", login);
 apiRouter.get("/signout", logout);
-// TODO: Oauth callback handling
 apiRouter.get("/callback", callback);
 apiRouter.get("/policy/password", getPolicyPassword);
 apiRouter.get("/user/:id?", getUser);

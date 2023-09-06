@@ -78,6 +78,12 @@ export const logout = Server.middleware(async (context) => {
 });
 
 export const callback = Server.middleware(async (context) => {
+  const authConfig = APP_DATA.authConfig();
+  if (authConfig.type === "internal") {
+    context.response.status = HTTP_CODE.REDIRECT.SEE_OTHER;
+    context.response.redirect(context.request.url.origin);
+    return;
+  }
   const { origin } = context.request.url;
   const { request } = context.state;
   const provider = await new OAuthProvider(origin).init();
