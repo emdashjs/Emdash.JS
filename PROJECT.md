@@ -12,7 +12,7 @@ This document lays out individual tasks for release.
   - [x] Identity record
   - [x] Author record
   - [x] Sign-in API
-  - [ ] Oauth logic
+  - [x] Oauth logic
   - [ ] Author profile HTML and API
 - [ ] Posts HTML and API
 - [ ] Home HTML and API
