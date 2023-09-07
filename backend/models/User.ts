@@ -3,9 +3,9 @@ import { FunctionKeys } from "../types.ts";
 import { emailId } from "./helpers.ts";
 
 class UserBase<T extends string = string> extends ActiveRecord<T> {
-  email!: string;
-  firstName!: string;
-  lastName!: string;
+  declare email: string;
+  declare firstName: string;
+  declare lastName: string;
 
   constructor(record: Partial<UserBase<T>>) {
     super({
@@ -38,7 +38,7 @@ export type UserFields = Exclude<
 >;
 
 export class Author extends UserBase<"Author"> {
-  bio!: string;
+  declare bio: string;
 
   get collection(): "Author" {
     return "Author";
@@ -48,7 +48,7 @@ export class Author extends UserBase<"Author"> {
 }
 
 export class Reader extends UserBase<"Reader"> {
-  bio?: string;
+  declare bio?: string;
 
   get collection(): "Reader" {
     return "Reader";

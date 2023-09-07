@@ -219,6 +219,22 @@ class DenoKvDriver extends DataDriver<Promise<Deno.Kv>, typeof DRIVER_TYPE> {
     };
   }
 
+  getAll(collection: string): DataManyResponse {
+    const conn = this.connection;
+    async function* iterable() {
+      const kv = await conn;
+      const results = kv.list<DataRecord>({ prefix: [collection] });
+      for await (const result of results) {
+        yield result.value;
+      }
+    }
+    return {
+      op: crypto.randomUUID(),
+      success: true,
+      records: iterable(),
+    };
+  }
+
   async readImage(request: DataRequest): Promise<DataImageResponse> {
     const op = crypto.randomUUID();
     const kv = await this.connection;
@@ -243,7 +259,7 @@ class DenoKvDriver extends DataDriver<Promise<Deno.Kv>, typeof DRIVER_TYPE> {
     const kv = await this.connection;
     const key = this.#denoKvKey(request);
     await this.#denoKvCounter(key);
-    const result = await kv.set(key, this);
+    const result = await kv.set(key, await request.value);
     return {
       op,
       success: result.ok,
@@ -256,7 +272,7 @@ class DenoKvDriver extends DataDriver<Promise<Deno.Kv>, typeof DRIVER_TYPE> {
       const kv = await this.connection;
       const key = this.#denoKvKey(request);
       await this.#denoKvCounter(key);
-      const result = await kv.set(key, this);
+      const result = await kv.set(key, request.record);
       return {
         op,
         success: result.ok,

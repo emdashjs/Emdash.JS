@@ -17,21 +17,21 @@ export function FirstRun() {
       >
         <fieldset>
           <div className="pure-control-group">
-            <label htmlFor="first_name">First name</label>
+            <label htmlFor="firstName">First name</label>
             <input
               required={true}
               placeholder="Jean-Luc"
               type="text"
-              name="first_name"
+              name="firstName"
             />
           </div>
           <div className="pure-control-group">
-            <label htmlFor="last_name">Last name</label>
+            <label htmlFor="lastName">Last name</label>
             <input
               required={true}
               placeholder="Picard"
               type="text"
-              name="last_name"
+              name="lastName"
             />
           </div>
           <div className="pure-control-group">

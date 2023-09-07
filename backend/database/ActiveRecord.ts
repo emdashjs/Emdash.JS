@@ -8,11 +8,11 @@ export interface ActiveRecord extends DataRecord {
 export abstract class ActiveRecord<
   Collection extends (string & {}) = (string & {}),
 > {
-  id!: string;
-  complexId?: string;
+  declare id: string;
+  declare complexId?: string;
 
   constructor(record: Partial<ActiveRecord<Collection>>) {
-    Object.assign(this, record, { save: this.save, destroy: this.destroy });
+    Object.assign(this, record);
     if (!this.id) {
       this.id = crypto.randomUUID();
     }
@@ -141,6 +141,15 @@ export class ActiveCollection<T extends ActiveRecord = ActiveRecord> {
     const source = collectionSource.get(this.name)!;
     const { name: collection } = this;
     const result = source.driver.getMany({ collection, id });
+    for await (const record of result.records) {
+      yield this.newRecord(record as Partial<T>);
+    }
+  }
+
+  async *getAll(): Awaiterable<T> {
+    const source = collectionSource.get(this.name)!;
+    const { name: collection } = this;
+    const result = source.driver.getAll(collection);
     for await (const record of result.records) {
       yield this.newRecord(record as Partial<T>);
     }

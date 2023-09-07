@@ -45,27 +45,27 @@ export class AppData extends ActiveRecord<"AppData"> {
   }
 
   /** Only required for Auth0 or Okta. */
-  readonly auth_client_domain?: string;
+  declare readonly auth_client_domain?: string;
   /** Required for any third-party provider. */
-  readonly auth_client_id?: string;
+  declare readonly auth_client_id?: string;
   /** Required for any third-party provider. */
-  readonly auth_client_secret?: string;
+  declare readonly auth_client_secret?: string;
   /** Used only for internal auth provider */
-  readonly auth_security?: SecurityLevel;
+  declare readonly auth_security?: SecurityLevel;
   /** Used only for internal auth provider */
-  readonly auth_algorithm?: PasswordAlgorithm;
-  readonly auth_provider!: SupportedProvider | (string & {});
-  readonly db!: `${string}://${string}`;
-  readonly email!: string;
-  readonly first_user!: boolean;
-  readonly folder?: string;
-  readonly name!: string;
-  readonly password_rules!: StrengthOptions;
-  readonly port?: number;
-  readonly secret_key?: string;
-  readonly session_ttl!: string;
-  readonly static!: string;
-  readonly uuid!: string;
+  declare readonly auth_algorithm?: PasswordAlgorithm;
+  declare readonly auth_provider: SupportedProvider | (string & {});
+  declare readonly db: `${string}://${string}`;
+  declare readonly email: string;
+  declare readonly first_user: boolean;
+  declare readonly folder?: string;
+  declare readonly name: string;
+  declare readonly password_rules: StrengthOptions;
+  declare readonly port?: number;
+  declare readonly secret_key?: string;
+  declare readonly session_ttl: string;
+  declare readonly static: string;
+  declare readonly uuid: string;
 
   authConfig(): AuthConfig {
     if (this.auth_provider !== "internal") {

@@ -76,6 +76,7 @@ export const postUser = Server.middleware(async (context) => {
           id,
           userType,
           provider,
+          email: userJson.email,
         });
         if (provider === "internal") {
           identity.hash = await PasswordAes.hash(userJson.password);

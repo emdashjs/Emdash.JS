@@ -12,7 +12,7 @@ let DenoKvOauthCore:
 
 export async function getSessionCookieName(requestUrl: string) {
   if (!DenoKvOauthCore) {
-    DenoKvOauth = await import(DenoKvOauthCoreImport);
+    DenoKvOauthCore = await import(DenoKvOauthCoreImport);
   }
   return DenoKvOauthCore.getCookieName(
     DenoKvOauthCore.SITE_COOKIE_NAME,
@@ -62,8 +62,8 @@ export const SupportedProvider = [
 ] as const;
 
 export class OAuthProvider {
-  provider!: ThirdPartyProvider;
-  client!: Oauth2Client;
+  declare provider: ThirdPartyProvider;
+  declare client: Oauth2Client;
   origin: string;
   constructor(origin: string) {
     this.origin = origin;

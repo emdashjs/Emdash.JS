@@ -5,8 +5,8 @@ import type { Identity } from "./mod.ts";
 
 export class Session extends ActiveRecord<"Session"> {
   declare complexId: string;
-  ip!: string;
-  expiresAt!: string;
+  declare ip: string;
+  declare expiresAt: string;
 
   constructor(record: Partial<Session>) {
     super(record);

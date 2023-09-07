@@ -46,6 +46,7 @@ export abstract class DataDriver<Type, Protocol extends (string & {})> {
   ): Promise<DataResponse>;
   abstract get(request: DataRequest): Promise<DataSingleResponse>;
   abstract getMany(request: DataRequest): DataManyResponse;
+  abstract getAll(collection: string): DataManyResponse;
   abstract readImage(request: DataRequest): Promise<DataImageResponse>;
   abstract saveImage(request: DataImageRequest): Promise<DataResponse>;
   abstract set(request: DataChangeRequest): Promise<DataResponse>;

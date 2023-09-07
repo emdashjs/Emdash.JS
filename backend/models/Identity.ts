@@ -6,15 +6,15 @@ import { User } from "./User.ts";
 
 /** The identity model. Not intended to be exposed to any external API. */
 export class Identity extends ActiveRecord<"Identity"> {
-  email!: string;
+  declare email: string;
   /** The OAuth provider name or `internal` */
-  provider!: SupportedProvider;
-  userType!: User["collection"];
+  declare provider: SupportedProvider;
+  declare userType: User["collection"];
   /** The password hash and salt, if provider is `internal` */
-  hash?: string;
+  declare hash?: string;
   /** The session id for an internal session or an Oauth access token, if used. */
-  sessionId?: string;
-  enabled?: boolean;
+  declare sessionId?: string;
+  declare enabled?: boolean;
 
   constructor(record: Partial<Identity>) {
     super({
