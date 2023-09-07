@@ -1,5 +1,5 @@
-import { APP_DATA } from "../AppData.ts";
-import { User, USER_BUILTIN } from "../auth/User.ts";
+import { APP_DATA } from "../constants.ts";
+// import { User, USER_BUILTIN } from "../auth/User.ts";
 import { APP_COLLECTION } from "../constants.ts";
 import { KvJsonExclude, KvJsonPartial, KvRecord } from "../deno_kv/KvRecord.ts";
 import { count, database } from "../deno_kv/database.ts";
@@ -33,14 +33,14 @@ export class Post extends KvRecord<RecordType> {
     this.tags = record?.tags ?? [];
   }
 
-  async getAuthor(): Promise<User> {
+  /*async getAuthor(): Promise<User> {
     if (this.author === APP_DATA.uuid) {
       return USER_BUILTIN.SYSTEM;
     }
     const kv = await database();
     const user = await kv.get<User>(["user", this.author]);
     return user.value ?? USER_BUILTIN.NOT_EXIST;
-  }
+  }*/
 
   static async count(): Promise<number> {
     return await count(APP_COLLECTION.USER);
