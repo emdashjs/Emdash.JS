@@ -1,7 +1,10 @@
 /** @jsx h */
-import { h, RouteParams, RouterContext } from "../deps.ts";
+import { h, Helmet, RouteParams, RouterContext } from "../deps.ts";
 import { ContextState } from "../backend/server/mod.ts";
 import { App } from "./components/App.tsx";
+
+// deno-lint-ignore no-explicit-any
+export const HelmetAny = Helmet as any;
 
 export function html(
   middleware: (

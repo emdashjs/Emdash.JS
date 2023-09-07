@@ -173,7 +173,9 @@ async function getSession(context: Context, core: EmdashJs) {
   const sessionId = await context.cookies.get(cookieName);
   if (sessionId) {
     const col = core.database.getCollection("Session");
-    return await col.get(sessionId) ?? undefined;
+    for await (const session of col.getMany(sessionId)) {
+      return session;
+    }
   }
 }
 

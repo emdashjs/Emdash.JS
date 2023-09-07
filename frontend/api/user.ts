@@ -35,15 +35,19 @@ export const getUser = Server.middleware(async (context) => {
 export const postUser = Server.middleware(async (context) => {
   await context.state.authorize("throw");
   const { collections } = context.state;
+  const { origin, searchParams } = context.request.url;
   const contentType = context.request.headers.get("content-type")?.trim()
     .toLowerCase();
   const formTypes = [
     "application/x-www-form-urlencoded",
     "multipart/form-data",
   ];
+  const isFormData = contentType &&
+    formTypes.some((t) => contentType.startsWith(t));
+  const landing = searchParams.get("landing");
   // deno-lint-ignore no-explicit-any
   let userJson = {} as Record<string, any>;
-  if (contentType && formTypes.some((t) => contentType.startsWith(t))) {
+  if (isFormData) {
     const formData = await context.state.request.formData();
     formData.forEach((rawValue, rawKey) => {
       const key = rawKey;
@@ -77,7 +81,9 @@ export const postUser = Server.middleware(async (context) => {
           userType,
           provider,
           email: userJson.email,
+          enabled: "enabled" in userJson ? userJson.enabled : true,
         });
+        console.log(userJson);
         if (provider === "internal") {
           identity.hash = await PasswordAes.hash(userJson.password);
         }
@@ -89,7 +95,13 @@ export const postUser = Server.middleware(async (context) => {
         }
         await identity.save();
         await user.save();
-        context.state.render.json(user);
+        if (isFormData && landing) {
+          const redirect = `${origin}${landing}`;
+          context.response.status = HTTP_CODE.REDIRECT.SEE_OTHER;
+          context.response.redirect(redirect);
+        } else {
+          context.state.render.json(user);
+        }
         return;
       }
       case "newPassword": {
@@ -97,7 +109,13 @@ export const postUser = Server.middleware(async (context) => {
         if (identity) {
           identity.hash = await PasswordAes.hash(userJson.newPassword);
           await identity.save();
-          context.state.render.json(await identity.getUser());
+          if (isFormData && landing) {
+            const redirect = `${origin}${landing}`;
+            context.response.status = HTTP_CODE.REDIRECT.SEE_OTHER;
+            context.response.redirect(redirect);
+          } else {
+            context.state.render.json(await identity.getUser());
+          }
           return;
         }
         break;
@@ -111,7 +129,13 @@ export const postUser = Server.middleware(async (context) => {
               user[field] = userJson[field];
             }
             await user.save();
-            context.state.render.json(user);
+            if (isFormData && landing) {
+              const redirect = `${origin}${landing}`;
+              context.response.status = HTTP_CODE.REDIRECT.SEE_OTHER;
+              context.response.redirect(redirect);
+            } else {
+              context.state.render.json(user);
+            }
             return;
           }
         }

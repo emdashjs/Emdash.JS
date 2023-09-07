@@ -12,7 +12,7 @@ export function FirstRun() {
       </p>
       <form
         className="pure-form pure-form-stacked"
-        action={`/api/user`}
+        action={`/api/user?landing=/user/profile`}
         method="post"
       >
         <fieldset>
