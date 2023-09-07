@@ -92,7 +92,7 @@ The app supports a limited number of data sources to balance flexibility with ma
 
 #### Deno KV
 
-Deno KV is the default data source using `denokv://<DEFAULT>`. A connection may also be made to a path relative to the project like `denokv://mydatabase.db`. The `<DEFAULT>` symbol will open a KV database using Deno's built-in storage location. A working directory relative path will open a KV database at the provided path. When deploying to Deno Deploy, any Deno KV connection will fall back to `denokv://<DEFAULT>` due to platform limitations.
+Deno KV is the default data source using `denokv://:default:`. A connection may also be made to a path relative to the project like `denokv://mydatabase.db`. The `:default:` symbol will open a KV database using Deno's built-in storage location. A working directory relative path will open a KV database at the provided path. When deploying to Deno Deploy, any Deno KV connection will fall back to `denokv://:default:` due to platform limitations.
 
 #### CockroachDB and Postgres
 

@@ -90,4 +90,4 @@ const Protocols = [
   "postgres",
 ] as const;
 const Readonly = ["markdown"] as const;
-const DEFAULT_CONN = "denokv://<DEFAULT>" as const;
+const DEFAULT_CONN = "denokv://:default:" as const;

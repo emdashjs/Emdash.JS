@@ -204,7 +204,7 @@ const PRE = "EMDASH_" as const;
 const DATA = new WeakMap<AppData, AppDataStore>();
 const FALLBACK = {
   auth_provider: "internal",
-  db: "denokv://<DEFAULT>",
+  db: "denokv://:default:",
   first_user: true,
   name: "Emdash.js",
   password_rules: getStrengthOptions(
