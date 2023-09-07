@@ -5,7 +5,6 @@
 /// <reference lib="deno.ns" />
 import { h } from "../../../deps.ts";
 import { Server } from "../../../backend/server/mod.ts";
-import { App } from "../../components/App.tsx";
 import { FirstRun } from "./FirstRun.tsx";
 import { Signin } from "./Signin.tsx";
 import { html } from "../../helpers.tsx";
