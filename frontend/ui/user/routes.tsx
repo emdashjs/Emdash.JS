@@ -8,23 +8,18 @@ import { Server } from "../../../backend/server/mod.ts";
 import { App } from "../../components/App.tsx";
 import { FirstRun } from "./FirstRun.tsx";
 import { Signin } from "./Signin.tsx";
+import { html } from "../../helpers.tsx";
+import { Profile } from "./Profile.tsx";
 
 export const userRouter = Server.router();
 
 userRouter.prefix("/user");
-userRouter.get("/first_run", async (context) => {
-  await context.state.authorize("throw");
-  context.state.render.html(() => (
-    <App>
-      <FirstRun />
-    </App>
-  ));
-});
 
-userRouter.get("/signin", (context) => {
-  context.state.render.html(() => (
-    <App>
-      <Signin />
-    </App>
-  ));
-});
+userRouter.get("/first_run", html(() => <FirstRun />, true));
+
+userRouter.get(
+  "/profile",
+  html((ctx) => <Profile user={ctx.state.user!} />, true),
+);
+
+userRouter.get("/signin", html(() => <Signin />));
