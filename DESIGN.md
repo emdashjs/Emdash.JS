@@ -120,7 +120,7 @@ Supported frontmatter for all markdown include `title`, `subtitle`, `description
 
 ### Plugins
 
-Plugins extend the functionality of the app. These run in a semi-sandboxed manner. Plugins may use the data source read and write their own records. A plugin may also read Content records, but cannot modify records they do not own. Plugins may provide arbitary Api, Feed, or Page routes, but cannot override either Built-in or Author providers.
+Plugins extend the functionality of the app. These run in a sandboxed manner. Plugins may use the data source to read and write their own records. A plugin may also read Content and User records, but cannot modify records they do not own. Plugins may provide arbitary Api, Feed, or Page routes, but cannot override either Built-in or Author providers.
 
 | Type        | Capabilities                                                            |
 |:-----------:|-------------------------------------------------------------------------|
@@ -144,3 +144,40 @@ The Emdash.js team intends to ship a few plugins with the app. These plgins may 
 #### Security Risks
 
 There are inherent risks with any plugin system. Plugins can execute code both in backend and frontend contexts; and modify the look and feel of the app. Only use trusted plugins; such as those provided by the Emdash.js team, audited projects, a well-known developer, or written for your deployment.
+
+#### Plugin Trust Model
+
+Plugins are categorized by their level of risk to the end user. These categories are **Trusted**, **Privileged**, and **Unprivileged**. Additionally, all plugins must advertise their **PluginName**, **PluginId**, **PluginKind**, **Version**, **Assets**, and **Capabilities** in their manifest and at runtime; these are used to determine what data and methods are passed to the plugin as well as to provide users with a consent model for plugins. Plugins may optionally include a **PluginHash** in their manifest; such a hash is required for privileged plugins.
+
+Unprivileged plugins are any plugin written by third parties. By default, third-party plugins are initialized and run in a sandbox to secure users against malicious code. Including a PluginHash and requesting review may result in a plugin becoming categorized as privileged. No unprivileged plugin may be trusted.
+
+Privileged plugins are written by third-parties and Emdash.js contributors. These plugins are **well-known and manually reviewed** by the Emdash.js team. Well-known is subjective and meant to communicate that a human being maintaining Emdash.js decided to trust the author of a plugin. This definition of "well-known" will change as a community builds around this project. Privileged plugins **must** include a PluginHash in their manifest. Such plugins are also eligible for a user of Emdash.js to mark as trusted.
+
+Trusted plugins are executed in the same context as Emdash.js for performance. Plugins written by the Emdash.js team and shipped by default with Emdash.js are also trusted by default and cannot be untrusted by users. Privileged plugins may be manually elevated to trusted by an Emdash.js user. Relying on trusted plugins improves cold-start times, especially in resource-constrained edge hosting like Deno Deploy.
+
+**Plugin Manifest Properties**
+
+- **PluginName**; *required*; a string value, conforming to JavaScript variable naming limitations.
+- **PluginId**; *required*; the v4 globally unique ID of this plugin, which should not change between versions.
+- **PluginKind**; *required*; the kind of plugin, one of `Content`, `Theme`, or `Widget`.
+- **Version**; *required*; the version of the plugin, preferably using semantic versioning.
+- **Assets**; *required*; a string array of static assets (relative to the plugin import url) which will be served.
+- **Capabilities**; *required*; a string array of defined capabilities which the plugin needs from Emdash.js at runtime.
+- **Description**; *optional*; a free-form description of the plugin intended for humans.
+- **PluginHash**; *optional*; required for privileged and trusted plugins, this hash is computed from deterministic values that can be confirmed at runtime.
+
+The plugin hash is computed by first concatenating the required manifest values and the import url of the plugin. The code, concatenated values, and all assets (except the manifest) are then packed into a container, similar to how a module for NPM is packed. The container is then SHA-512 hashed and the resulting hash should be added to the manifest. The container is then discarded. The code, manifest, and assets should all be served from the same hosting url. This makes it easy to author a plugin as a Deno, Github, Codeberg, or other module.
+
+**Capabilities**
+
+A plugin that attempts to access a capability of Emdash.js that it did not advertise will silently fail and cause Emdash.js to store details of the attempt which a user can review later. Any front-end issues should be isolated by Emdash.js to the plugin and allow the rest of Emdash.js to continue working normally.
+
+| Name           | Description                                                  |
+|----------------|--------------------------------------------------------------|
+| `Api/${root}`  | Provides an api at a given root.                             |
+| `Content`      | Read-only access to content records.                         |
+| `Feed/${root}` | Provides an RSS feed at a given root.                        |
+| `Page/${root}` | Provides page routes at a given root.                        |
+| `Style`        | Provides either `link rel="stylesheet"` or `style` tags.     |
+| `Script`       | Provides script tags.                                        |
+| `User`         | Read-only access to user objects.                            |
