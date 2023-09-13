@@ -5,6 +5,18 @@ import type { Author, Reader, User } from "./User.ts";
 
 export async function getUser(
   userId: string,
+  userType: Author["collection"],
+): Promise<Author | undefined>;
+export async function getUser(
+  userId: string,
+  userType?: Reader["collection"],
+): Promise<Reader | undefined>;
+export async function getUser(
+  userId: string,
+  userType?: User["collection"],
+): Promise<User | undefined>;
+export async function getUser(
+  userId: string,
   userType?: User["collection"],
 ): Promise<User | undefined> {
   // Fast path.

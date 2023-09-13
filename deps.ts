@@ -1,7 +1,8 @@
 import sanitizeHtml from "https://esm.sh/sanitize-html@2.11.0";
+import grayMatter from "npm:gray-matter@4.0.3";
 import * as phcFormat from "https://esm.sh/@phc/format@1.0.0";
 const phc: PhcFormat = phcFormat;
-export { phc, sanitizeHtml };
+export { grayMatter, phc, sanitizeHtml };
 export * as Path from "https://deno.land/std@0.196.0/path/mod.ts";
 export * as Fs from "https://deno.land/std@0.196.0/fs/exists.ts";
 export * as Base64 from "https://deno.land/std@0.196.0/encoding/base64.ts";
