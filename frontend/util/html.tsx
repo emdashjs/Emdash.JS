@@ -24,7 +24,7 @@ export function html(
     const Result = await middleware(context, next);
     if (Result) {
       const renderTime = context.state.timing.start("Render");
-      context.state.render.html(() => (
+      await context.state.render.html(() => (
         <App>
           <Result />
         </App>

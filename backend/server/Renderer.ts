@@ -1,4 +1,5 @@
 import { Context, createXMLRenderer, Helmet, renderSSR } from "../../deps.ts";
+import { insertStyle } from "../util/purgeStyles.ts";
 import { ContextState } from "./ContextState.ts";
 
 export type RenderOptions = {
@@ -47,7 +48,7 @@ export class Renderer {
     return this.#context.response;
   }
 
-  html(
+  async html(
     // deno-lint-ignore no-explicit-any
     input: any,
     options?: RenderOptions,
@@ -59,7 +60,7 @@ export class Renderer {
     } else {
       const app = renderSSR(input);
       const { body, head, footer, attributes } = Helmet.SSR(app);
-      this.#context.response.body = `
+      const rendered = `
       <!DOCTYPE html>
       <html ${attributes.html.toString()}>
         <head>${head.join("\n")}</head>
@@ -67,6 +68,10 @@ export class Renderer {
         attributes.body.size > 0 ? "body " + attributes.body.toString() : "body"
       }>${body.trim()}${footer.join("\n")}</body>
       </html>`;
+      halfmoon = halfmoon ??
+        await fetch(import.meta.resolve("./halfmoon.min.css"))
+          .then((res) => res.text());
+      this.#context.response.body = await insertStyle(rendered, halfmoon);
     }
     this.#setHeaders(options);
 
@@ -117,6 +122,7 @@ export class Renderer {
 
 const xmlDirective = '<?xml version="1.0" encoding="utf-8"?>';
 const xmlSsr = createXMLRenderer(renderSSR);
+let halfmoon: string | undefined;
 
 // deno-lint-ignore no-explicit-any
 function isBufferSource(source: any): source is BufferSource {

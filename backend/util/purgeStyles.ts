@@ -25,12 +25,8 @@ function indexOfCss(html: string): number {
         buffer = "";
       } else {
         const { length: bufLen } = (buffer += char);
-        if (bufLen === 10) {
-          if (buffer === "stylesheet") {
-            return tagStart;
-          } else {
-            withinLink = false;
-          }
+        if (bufLen === 10 && buffer === "stylesheet") {
+          return tagStart;
         }
       }
     } else if (withinTag) {
@@ -53,21 +49,25 @@ function indexOfCss(html: string): number {
   return -1;
 }
 
-function insertStyle(html: string, css: string): string {
-  const index = indexOfCss(html);
-  const tag = `<style>${css}</style>`;
-  return html.slice(0, index) + tag + html.slice(index);
+export function insertStyle(html: string, css: string | undefined): string {
+  if (css?.trim()) {
+    const index = indexOfCss(html);
+    const tag = `<style>${css}</style>`;
+    return html.slice(0, index) + tag + html.slice(index);
+  }
+  return html;
 }
 
-export async function purgeStyle(
+export async function purgeStyles(
   html: string,
-  styles: string,
+  styles: string | undefined,
 ): Promise<string> {
-  const [{ css } = { css: undefined }] = await purgeCss.purge({
-    content: [{ extension: "html", raw: html }],
-    css: [{ name: "halfmoon.min.css", raw: styles }],
-  });
-  if (css?.trim()) {
+  if (styles?.trim()) {
+    // return insertStyle(html, styles);
+    const [{ css } = { css: undefined }] = await purgeCss.purge({
+      content: [{ extension: "html", raw: html }],
+      css: [{ name: "halfmoon.min.css", raw: styles }],
+    });
     return insertStyle(html, css);
   }
   return html;

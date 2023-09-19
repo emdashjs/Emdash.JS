@@ -6,6 +6,7 @@
 import { h, Helmet, sanitizeHtml, transpile } from "../../deps.ts";
 import { App } from "../components/App.tsx";
 import { ContextState, MainRouter, Server } from "../../backend/server/mod.ts";
+import { html } from "../util/html.tsx";
 import { Marked, MarkedOptions } from "https://esm.sh/marked@7.0.1";
 import { markedHighlight } from "https://esm.sh/marked-highlight@2.0.4";
 import hljsImport from "https://esm.sh/highlight.js@11.8.0";
@@ -18,7 +19,7 @@ const hljs = hljsImport as any;
 const m = new Marked(markedHighlight({
   async: true,
   langPrefix: "hljs language-",
-  highlight(code, lang) {
+  highlight(code: any, lang: any) {
     console.log(lang);
     const language = hljs.getLanguage(lang) ? lang : "plaintext";
     const res = hljs.highlight(code, { language });
@@ -36,9 +37,7 @@ const HelmetAny = Helmet as any;
 
 uiRouter.merge(userRouter);
 
-uiRouter.get("/", (context) => {
-  context.state.render.html(<App>Hello, world!</App>);
-});
+uiRouter.get("/", html(() => <App>Hello, world!</App>));
 
 uiRouter.get("/post/:slug(.*)", async (context) => {
   const edit = context.request.url.searchParams.has("edit");
@@ -55,7 +54,7 @@ uiRouter.get("/post/:slug(.*)", async (context) => {
         "span": ["hljs*", "language-*", "lang-*"],
       },
     });
-    context.state.render.html(() => (
+    await context.state.render.html(() => (
       <App>
         <HelmetAny>
           <link
@@ -104,10 +103,10 @@ uiRouter.get("/post/:slug(.*)", async (context) => {
   }
 });
 
-uiRouter.get("/test", (context) => {
+uiRouter.get("/test", async (context) => {
   // deno-lint-ignore no-explicit-any
   const HelmetAny = Helmet as any;
-  context.state.render.html(() => (
+  await context.state.render.html(() => (
     <App>
       <HelmetAny>
         <link rel="stylesheet" href="/static/editor.css" />
